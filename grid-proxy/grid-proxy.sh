@@ -66,6 +66,7 @@ Usage: $0 [<options>] <certificate name>
   Options are one of the following:
     -b        Output for Bourne shell
     -c        Output for csh or variant.
+    -f        Generate new proxy even if one exists.
     -h        Display usage and exit.
 
 For a full man page run:
@@ -82,8 +83,9 @@ EOF
 
 shell=""
 arg_error=0
+force=0
 
-while getopts bch arg
+while getopts bcfh arg
 do
   case $arg in
     b) # Bourne shell
@@ -101,6 +103,10 @@ do
       else
 	shell="csh"
       fi;;
+
+    f) # Force run of grid-proxy-init
+	force=1
+	;;
 
     h)  usage
 	exit 0
@@ -172,10 +178,17 @@ fi
 
 # Check to see if we have a valid proxy
 
-if ${grid_proxy_info} -exists ; then
+if test ${force} -eq 0 && ${grid_proxy_info} -exists ; then
 
-  # We have a valid proxy, do nothing
-  :
+  # We have a valid proxy, print time left
+
+  secs_left=`${grid_proxy_info} -timeleft`
+  secs=`expr ${secs_left} % 60`
+  mins_left=`expr ${secs_left} / 60`
+  mins=`expr ${mins_left} % 60`
+  hours_left=`expr ${mins_left} / 60`
+
+  echo "Proxy exists. Time left on proxy: ${hours_left}:${mins}" 1>&2
 
 else
 
@@ -264,12 +277,12 @@ To use grid-proxy you use the gpi alias or function you set up. Type
 "gpi E<lt>nameE<gt>" where E<lt>nameE<gt> is the E<lt>nameE<gt>
 portion of the directory you created during setup.
 
-For example I have my alliance certificate in F<~/.certificates/ncsa>, to
-create and use an proxy from my alliance certificate I would run "gpi
-ncsa". This will set all the needed environment variables and run
+For example I have my DOE Grids certificate in F<~/.certificates/doe>, to
+create and use an proxy from my DOE Grids certificate I would run "gpi
+doe". This will set all the needed environment variables and run
 grid-proxy-init for me if I don't currently have a valid proxy for my
-alliance certificate. I can then use "gpi globus" to create a globus
-certificate and then use "gpi ncsa" and "gpi globus" to switch back
+DOE Grids certificate. I can then use "gpi globus" to create a globus
+certificate and then use "gpi doe" and "gpi globus" to switch back
 and forth between the two proxies. Each time I switch grid-proxy
 checks for a valid proxy and runs grid-proxy-init for me if one is not
 present.
@@ -288,13 +301,15 @@ Commandline options are:
 
 =item -c Csh mode (default)
 
+=item -f Generate new proxy even if one exists.
+
 =item -h Print usage and exit
 
 =back
 
 =head1 AUTHOR
 
-Von Welch vwelch@ncsa.uiuc.edu
+Von Welch welch@mcs.anl.gov
 
 This is free software. You may do with it what you please.  No support
 or warrantly given or implied. Bug fixes or comments welcome.
