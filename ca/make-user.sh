@@ -16,7 +16,13 @@ set -e
 #
 
 usage() {
-  echo "Usage: $0 <ca name> <user name>"
+cat <<EOF
+Usage: $0 [<options>] <user name>
+
+Options:
+ -c <ca name>            Name of issuing CA ("default" by default).
+ -h                      Print help and exit.
+EOF
 }
 
 ca_name="default"
@@ -26,6 +32,7 @@ do
   case $arg in
   c) # CA name
     ca_name=$OPTARG ;;
+  h) usage ; exit 0 ;;
   ?)
     echo "Unknown option: -$ARG"
     usage
@@ -36,6 +43,7 @@ done
 shift `expr $OPTIND - 1`
 
 if [ $# -lt 1 ]; then
+  echo "User name required."
   usage
   exit 1
 fi

@@ -15,6 +15,31 @@ set -e
 # Parse commandline options
 #
 
+usage() {
+cat <<EOF
+EOF
+Usage: $0 [<options>] [<ca name>]
+
+CA name will be "default" if not provided.
+
+Options:
+  -h                   Print help and exit.
+EOF
+}
+
+while getopts h arg
+do
+  case $arg in
+  h) usage ; exit 0 ;;
+  ?)
+    echo "Unknown option: -$ARG"
+    usage
+    exit 1
+  esac
+done
+
+shift `expr $OPTIND - 1`
+
 if [ $# -gt 0 ]; then
   ca_name=$1
   shift
@@ -97,10 +122,10 @@ dn="/C=${COUNTRY_NAME}/O=${ORG_NAME}/OU=${OU_NAME}/CN=${COMMON_NAME}"
 namespace="/C=${COUNTRY_NAME}/O=${ORG_NAME}/*"
 
 sed_script=""
-sed_script=${sed_script}"s\\Xdn\\${dn}\\g;"
-sed_script=${sed_script}"s\\Xnamespace\\${namespace}\\g;"
+sed_script="${sed_script}s\\Xdn\\${dn}\\g;"
+sed_script="${sed_script}s\\Xnamespace\\${namespace}\\g;"
 
-sed $sed_script signing_policy.in > $ca_signing_policy
+sed "${sed_script}" signing_policy.in > $ca_signing_policy
 
 ######################################################################
 #

@@ -16,16 +16,25 @@ set -e
 #
 
 usage() {
-  echo "Usage: $0 <ca name> <user name>"
+cat <<EOF
+Usage: $0 [<options>] [<ca name>]
+
+CA name will be "default" if not provided.
+
+Options:
+  -c <ca name>         Name of superior CA ("default" by default).
+  -h                   Print help and exit.
+EOF
 }
 
 top_ca_name="default"
 
-while getopts c: arg
+while getopts c:h arg
 do
   case $arg in
   c) # Superior name
     top_ca_name=$OPTARG ;;
+  h) usage; exit 0 ;;
   ?)
     echo "Unknown option: -$ARG"
     usage
@@ -36,6 +45,7 @@ done
 shift `expr $OPTIND - 1`
 
 if [ $# -ne 1 ]; then
+  echo "Name of new CA required."
   usage
   exit 1
 fi
@@ -150,7 +160,15 @@ ca_hash=`${openssl} x509 -in $ca_cert -hash -noout`
 
 cp ${ca_cert} ${ca_dir}/${ca_hash}.0
 
-# XXX signing policy file
+ca_signing_policy=${ca_dir}/${ca_hash}.signing_policy
+dn="/C=${COUNTRY_NAME}/O=${ORG_NAME}/OU=${OU_NAME}/CN=${COMMON_NAME}"
+namespace="/C=${COUNTRY_NAME}/O=${ORG_NAME}/*"
+
+sed_script=""
+sed_script="${sed_script}s\\Xdn\\${dn}\\g;"
+sed_script="${sed_script}s\\Xnamespace\\${namespace}\\g;"
+
+sed "${sed_script}" signing_policy.in > $ca_signing_policy
 
 ######################################################################
 #

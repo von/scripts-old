@@ -16,19 +16,27 @@ set -e
 #
 
 usage() {
-  echo "Usage: $0 [-c <ca name>] [-C] <ca or user name>"
+cat <<EOF
+Usage: $0 [<options>] <ca or user name>
+
+Options:
+  -c <issuer name>     Name of certificate issuer ("default" by default).
+  -C                   Certificate to revoke is CA certificate.
+  -h                   Print help and exit.
+EOF
 }
 
 ca_name="default"
 type="user"
 
-while getopts c:C arg
+while getopts c:Ch arg
 do
   case $arg in
   c) # CA name
     ca_name=$OPTARG ;;
   C) # Revoke CA
     type="ca" ;;
+  h) usage ; exit 0 ;;
   ?)
     echo "Unknown option: -$ARG"
     usage
