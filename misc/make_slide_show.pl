@@ -14,6 +14,12 @@ use XML::Simple;
 
 ######################################################################
 
+use Getopt::Std;
+
+getopts('t:', \%Options);
+
+my $tarball = $Options{"t"};
+
 ######################################################################
 #
 # Parse command line arguments
@@ -21,6 +27,11 @@ use XML::Simple;
 
 my $config_filename = shift ||
   usage_exit("Missing configuration filename");
+
+if (defined($tarball))
+{
+  system("tar cf $tarball $config_filename");
+}
 
 ######################################################################
 #
@@ -58,13 +69,22 @@ my $number_of_photos = $#{$State{photos}} + 1;
 open(TOC, ">$State{toc_filename}") ||
   die "Could not open $State{toc_filename} for writing: $!";
 
-  print TOC "
+
+my $first_file = sprintf($State{filename_template}, 1);
+
+print TOC "
 <html>
 <head>
 <title>$State{title}</title>
 </head>
 <body>
 <h1>$State{title}</h1>
+
+<a href=\"$first_file\">Start slide show</a>
+
+<hr>
+
+Table of contents:<br>
 <ol>
 ";
 
@@ -74,6 +94,9 @@ for(my $photo_number = 1;
 
   my $photo = $State{photos}[$photo_number - 1];
   my $title = $photo->{title} || sprintf("Photo %d", $photo_number);
+
+  # Replace %n with photo number
+  $title =~ s/\%n/$photo_number/g;
 
   my $filename = sprintf($State{filename_template}, $photo_number);
 
@@ -100,7 +123,7 @@ for(my $photo_number = 1;
   print "<tr>\n";
 
   print "<td align=center width=33%>";
-  if ($photo_number != 0) {
+  if ($photo_number != 1) {
     my $prev_filename  = sprintf($State{filename_template}, $photo_number - 1);
     print "<a href=\"$prev_filename\">Previous photo</a><p>\n";
   } else {
@@ -129,21 +152,45 @@ for(my $photo_number = 1;
 
   print "<img src=\"$photo->{image}\" width=80% height=80%><p>\n";
 
-  print "<a href=\"$photo->{image}\">Click here for full-size image</a>\n";
+  printf("<a href=\"%s\">Click here for full-size image (%s)</a>\n",
+	 $photo->{image}, $photo->{image});
+
 
   print "</center>\n";
   print "</body></html>\n";
 
   close(HTMLFILE);
+
+  if (defined($tarball))
+  {
+    system("tar rf $tarball $filename $photo->{image}");
+  }
+
+
 }
 
 print TOC "
 </ol>
+";
+
+my $time = localtime();
+
+printf(TOC "<hr>\n
+Generated %s by make_slide_show\n",
+       $time);
+
+print TOC "
 </body>
 </html>
 ";
 
 close(TOC);
+
+if (defined($tarball))
+{
+  system("tar rf $tarball $State{toc_filename}");
+}
+
 
 exit(0);
 
@@ -177,7 +224,10 @@ make_slide_show.pl - Take a bunch of images and make an html slide show.
 
 =head1 SYNOPSIS
 
-make_slide_show.pl <config file>
+make_slide_show.pl [<options>] <config file>
+
+Options:
+ -t <tarball>        Create tarball with all files needed for slideshow.
 
 =head1 QUICK START
 
