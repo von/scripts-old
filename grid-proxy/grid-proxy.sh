@@ -23,6 +23,11 @@ grid_proxy_init="grid-proxy-init"
 grid_proxy_info="grid-proxy-info"
 
 ######################################################################
+
+# Default grid_proxy_init options
+gpi_options=""
+
+######################################################################
 #
 # Subroutines
 #
@@ -66,8 +71,10 @@ Usage: $0 [<options>] <certificate name>
   Options are one of the following:
     -b        Output for Bourne shell
     -c        Output for csh or variant.
+    -d        Run grid-proxy-init with '-debug'
     -f        Generate new proxy even if one exists.
     -h        Display usage and exit.
+    -v        Run grid-proxy-init with '-verify'
 
 For a full man page run:
 
@@ -85,7 +92,7 @@ shell=""
 arg_error=0
 force=0
 
-while getopts bcfh arg
+while getopts bcdfhv arg
 do
   case $arg in
     b) # Bourne shell
@@ -104,6 +111,10 @@ do
 	shell="csh"
       fi;;
 
+    d) # Run gpi with -debug
+        gpi_options=${gpi_options}" -debug"
+        ;;
+
     f) # Force run of grid-proxy-init
 	force=1
 	;;
@@ -111,6 +122,12 @@ do
     h)  usage
 	exit 0
 	;;
+
+    v) # Run gpi with -verify
+        gpi_options=${gpi_options}" -verify"
+        ;;
+
+
   esac
 done
 
@@ -216,7 +233,7 @@ else
 
   # This output is not to be evaled so write to stderr
  
-  ${grid_proxy_init} 1>&2
+  ${grid_proxy_init} ${gpi_options} 1>&2
 
 fi
 
