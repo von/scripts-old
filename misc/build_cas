@@ -1,0 +1,93 @@
+#!/bin/sh
+######################################################################
+#
+# build_cas
+#
+# Build a cas release
+#
+
+# Exit on any error
+set -e
+
+######################################################################
+#
+# Base names of the bundles
+#
+gpt="gpt-1.0"
+globus_cas_bundle="globus_cas_bundle"
+globus_cas_fto_bundle="globus_cas_ftp_bundle"
+pyglobus="pyGlobus-CAS"
+
+######################################################################
+#
+# Build and install gpt
+#
+gunzip -c ${gpt}.tar.gz | tar xf -
+cd $gpt
+./build_gpt
+cd ..
+
+######################################################################
+#
+# Build globus_cas-bundle
+#
+${GLOBUS_LOCATION}/sbin/globus-build \
+	-install-only ${globus_cas_bundle}.tar.gz \
+	gcc32dbgpthr
+${GLOBUS_LOCATION}/setup/globus-postinstall.sh
+
+
+######################################################################
+#
+# Build pyglobus
+#
+
+gunzip -c ${pyglobus}.tar.gz | tar xf -
+cd $pyglobus
+mkdir build
+cd build
+../configure --with-installdir=${GLOBUS_LOCATION}/lib/python
+make
+make install
+cd ..
+cd ..
+
+######################################################################
+#
+# Build globus_cas_ftp_bundle
+#
+
+${GLOBUS_LOCATION}/sbin/globus-build \
+	-install-only ${globus_cas_ftp_bundle}.tar.gz \
+	gcc32dbg
+${GLOBUS_LOCATION}/setup/globus-postinstall.sh
+
+######################################################################
+#
+# Configure bootstrap CAS server
+#
+
+cat > ${GLOBUS_LOCATION}/etc/cas_bootstrap.cf <<EOF
+ca_name globus-ca
+cred_type x509
+ca_certfile /etc/grid-security/certificates/42864e48.0
+user_subject_name "/O=Grid/O=Globus/OU=mcs.anl.gov/CN=Von Welch"
+user_mapped_name von
+EOF
+
+${GLOBUS_LOCATION}/sbin/cas_bootstrap \
+  ${GLOBUS_LOCATION}/etc/cas_bootstrap.cf
+
+######################################################################
+#
+# Done
+#
+
+echo "build_cas done."
+exit 0
+
+#
+# End
+#
+######################################################################
+
