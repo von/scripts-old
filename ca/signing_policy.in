@@ -1,0 +1,6 @@
+ access_id_CA      X509         'Xdn'
+
+ pos_rights        globus        CA:sign
+
+ cond_subjects     globus     '"Xnamespace"'
+
