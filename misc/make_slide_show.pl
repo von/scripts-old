@@ -10,99 +10,84 @@
 #
 ######################################################################
 
-my $NumberOfPhotos = scalar(@ARGV);
-my $PhotoNumber = 0;
+use XML::Simple;
 
-#
-# Names of previous, current, next and first file.
-#
-
-my $PreviousFilename = undef;
-my $CurrentFilename = undef;
-my $NextFilename = shift;
-my $FirstFilename = undef;
-
-# Image size
-my $Height = "200";
-my $Width = "320";
+######################################################################
 
 ######################################################################
 #
-# Get names of photos
+# Parse command line arguments
 #
-# If present use names on command line, else read file slide_show
 
-my $Photos = ();
+my $config_filename = shift ||
+  usage_exit("Missing configuration filename");
 
-if (scalar(@ARGV)) {
-  @Photos = @ARGV;
+######################################################################
+#
+# Parse configuration file
+#
 
-} elsif ( -f "slide_show" ) {
-  print "Reading photos from file \"slide_show\"...\n";
+my $Config = XMLin($config_filename);
 
-  open(IN, "<slide_show") || die "Could not open slide_show for reading: $!";
+######################################################################
+#
+# Set up state
+#
 
-  while (<IN>) {
-    chomp;
-    my ($filename, $title) = split(' ', $_, 2);
-    push(@Photos, $filename);
-    push(@Titles, $title);
-  }
+my %State;
 
-  close(IN);
+$State{toc_filename} = $Config->{'toc_filename'} || "index.html";
+$State{title} = $Config->{'title'} || "Slide Show";
+
+if (ref($Config->{slide}) eq "ARRAY") {
+  $State{photos} = $Config->{slide};
+} else {
+  # Single slide, need to convert to an array
+  $State{photos} = [ $Config->{slide} ];
 }
 
-$NumberOfPhotos = scalar(@Photos);
+$State{filename_template} = "slide%04d.html";
 
 ######################################################################
 #
 # Main loop
 #
 
-open(TOC, ">toc.html") ||
-  die "Could not open toc.html for writing: $!";
+my $number_of_photos = $#{$State{photos}} + 1;
+
+open(TOC, ">$State{toc_filename}") ||
+  die "Could not open $State{toc_filename} for writing: $!";
 
   print TOC "
 <html>
 <head>
-<title>Table of contents</title>
+<title>$State{title}</title>
 </head>
 <body>
-<h1>Table of contents</h1>
+<h1>$State{title}</h1>
 <ol>
 ";
 
-for($CurrentFilename = shift(@Photos),
-    $NextFilename = shift(@Photos),
-    $PhotoNumber = 1;
-    defined($CurrentFilename);
-    $PreviousFilename = $CurrentFilename,
-    $CurrentFilename = $NextFilename,
-    $NextFilename = shift(@Photos),
-    $PhotoNumber++) {
+for(my $photo_number = 1;
+    $photo_number <= $number_of_photos;
+    $photo_number++) {
 
-  $FirstFilename = $CurrentFilename if !defined($FirstFilename);
+  my $photo = $State{photos}[$photo_number - 1];
+  my $title = $photo->{title} || sprintf("Photo %d", $photo_number);
 
-  # Get names of html files associated with image files.
-  my $current_filename = html_filename($CurrentFilename);
-  my $previous_filename = html_filename($PreviousFilename);
-  my $next_filename = html_filename($NextFilename);
-  my $first_filename = html_filename($FirstFilename);
-  my $text_filename = text_filename($CurrentFilename);
+  my $filename = sprintf($State{filename_template}, $photo_number);
 
-  my $title = shift(@Titles);
+  print TOC "<li><a href=\"$filename\">$title</a>\n";
 
-  print TOC "<li><a href=\"$current_filename\">$title</a>\n";
-
-  open(HTMLFILE, ">$current_filename") ||
-    die "Could not open $html_filename for writing: $!";
+  open(HTMLFILE, ">$filename") ||
+    die "Could not open $filename for writing: $!";
 
   select HTMLFILE;
 
   print "
 <html>
 <head>
-<title>$title ($PhotoNumber/$NumberOfPhotos) $CurrentFilename</title>
+<title>$title</title>
 </head>
 <body>
 ";
@@ -115,19 +100,21 @@ for($CurrentFilename = shift(@Photos),
   print "<tr>\n";
 
   print "<td align=center width=33%>";
-  if (defined($PreviousFilename)) {
-    print "<a href=\"$previous_filename\">Previous photo</a><p>\n";
+  if ($photo_number != 0) {
+    my $prev_filename  = sprintf($State{filename_template}, $photo_number - 1);
+    print "<a href=\"$prev_filename\">Previous photo</a><p>\n";
   } else {
     print "This is the first photo";
   }
   print "</td>\n";
 
   print "<td align=center width=33%>";
-  print "<a href=\"toc.html\">Table of Contents</a>";
+  print "<a href=\"$State{toc_filename}\">Table of Contents</a>";
   print "</td>\n";
 
   print "<td align=center>";
-  if (defined($NextFilename)) {
+  if ($photo_number < $number_of_photos) {
+    my $next_filename  = sprintf($State{filename_template}, $photo_number + 1);
     print "<a href=\"$next_filename\">Next photo</a><p>\n";
   } else {
     print "This is the last photo";
@@ -135,22 +122,14 @@ for($CurrentFilename = shift(@Photos),
   print "</td>\n";
   print "</tr></table>\n";
 
-  if ( -f $text_filename) {
-    open(TXT, "<$text_filename") ||
-      die "Could not open $text_filename for reading: $!";
-
-    while (<TXT>) {
-      print;
-    }
-
-    close(TXT);
-
+  if (defined($photo->{content})) {
+    print $photo->{content};
     print "<p>\n";
   }
 
-  print "<img src=\"$CurrentFilename\"><p>\n";
+  print "<img src=\"$photo->{image}\" width=80% height=80%><p>\n";
 
-  #print "<a href=\"$CurrentFilename\">Click here for full-size image</a>\n";
+  print "<a href=\"$photo->{image}\">Click here for full-size image</a>\n";
 
   print "</center>\n";
   print "</body></html>\n";
@@ -166,8 +145,6 @@ print TOC "
 
 close(TOC);
 
-symlink(html_filename($FirstFilename), "index.html");
-
 exit(0);
 
 #
@@ -177,36 +154,55 @@ exit(0);
 
 ######################################################################
 #
-# html_filename
+# usage_exit()
 #
-# Given the name of the image file return the name of the html
-# file associated with it.
+# Print usage and die.
 #
-# Arguments: Image filename
-# Returns: HTML filename
+# Arguments: Error string
+# Returns: Doesn't
 
-sub html_filename {
-  my $html_filename = shift;
+sub usage_exit {
+  my $error_string = shift;
 
-  $html_filename =~ s/\.[^.]+$/.html/;
-
-  return $html_filename;
+  print $error_string if defined($error_string);
+  print "Usgae: $0 <configuration file>";
+  exit(1);
 }
 
-######################################################################
-#
-# text_filename
-#
-# Given the name of the image file return the name of the text
-# file associated with it.
-#
-# Arguments: Image filename
-# Returns: text filename
+__END__
 
-sub text_filename {
-  my $text_filename = shift;
+=head1 NAME
 
-  $text_filename =~ s/\.[^.]+$/.txt/;
+make_slide_show.pl - Take a bunch of images and make an html slide show.
 
-  return $text_filename;
-}
+=head1 SYNOPSIS
+
+make_slide_show.pl <config file>
+
+=head1 QUICK START
+
+make_slide_show takes a bunch of images and produces an html slide
+show with a table of contents and a separate page for each slide that
+can be walked through easily with a web browser.
+
+make_slide_show accepts as the sole parameter the name of a
+configuration file. This configuration file is an XML file with the
+following format:
+
+For example:
+
+<slideshow title="Von's Slide Show">
+  <slide image="image1.jpg" title="Slide number 1"/>
+  <slide image="image2.jpg" title="Slide number 2">
+  Some text describing this slide.
+  </slide>
+  <slide image="image3.jpg" title="Slide number 3">
+  Some text describing slide 3.
+  </slide>
+</slideshow>
+
+=head1 AUTHOR
+
+Von Welch <von@vwelch.com>
+
+=cut
