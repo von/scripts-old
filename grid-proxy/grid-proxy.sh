@@ -133,52 +133,72 @@ fi
 if [ -z "$shell" ]; then
   shell=csh
 fi
-      
-if [ -n "${cert_name}" ]; then
-  # Set up for specific certificate
-  echo "Setting up environment for ${cert_name} certificate" 1>&2
 
-  # Get paths for this certificate
-
-  cert_dir=`get_cert_dir $cert_name`
-  proxy_file=`get_proxy_file ${cert_name}`
-
-  # Make sure this certificate exists
-  if [ ! -d ${cert_dir} ]; then
-    echo "No certificate named ${cert_name}: ${cert_dir} does not exist" 1>&2
-    exit 1
+# If no certificate name specified on command line, look
+# for default in GRID_PROXY_CERT_NAME environment variable
+if [ -z "${cert_name}" ]; then
+  if [ -n "${GRID_PROXY_CERT_NAME}" ]; then
+    cert_name="${GRID_PROXY_CERT_NAME}"
   fi
-
-  # Set up environment for this certificate
-
-  X509_USER_CERT=${cert_dir}/usercert.pem ; export X509_USER_CERT
-  X509_USER_KEY=${cert_dir}/userkey.pem ; export X509_USER_KEY
-  X509_USER_PROXY=${proxy_file} ; export X509_USER_PROXY
-
-  # Now echo environment for evaluation
-  case ${shell} in
-    sh)
-      echo "X509_USER_CERT=${X509_USER_CERT} ; export X509_USER_CERT ;"
-      echo "X509_USER_KEY=${X509_USER_KEY} ; export X509_USER_KEY ;"
-      echo "X509_USER_PROXY=${X509_USER_PROXY} ; export X509_USER_PROXY ;"
-      ;;
-
-    csh)
-      echo "setenv X509_USER_CERT ${X509_USER_CERT} ;"
-      echo "setenv X509_USER_KEY ${X509_USER_KEY} ;"
-      echo "setenv X509_USER_PROXY ${X509_USER_PROXY} ;"
-      ;;
-
-    *)
-      echo "Internal error: unknown shell ${shell}" 1>&2
-      exit 1
-  esac
-
 fi
+
+# If we still don't know the certname, we're out of luck
+if [ -z "${cert_name}" ]; then
+    echo "No certificate name given on command line and no default known" 1>&2
+    exit 1
+fi
+
+# Set up for specific certificate
+echo "Using proxy for certificate \"${cert_name}\"" 1>&2
+
+# Get paths for this certificate
+
+cert_dir=`get_cert_dir ${cert_name}`
+proxy_file=`get_proxy_file ${cert_name}`
+
+# Make sure this certificate exists
+if [ ! -d ${cert_dir} ]; then
+  echo "No certificate named ${cert_name}: ${cert_dir} does not exist" 1>&2
+  exit 1
+fi
+
+# Set up environment for this certificate
+
+X509_USER_CERT=${cert_dir}/usercert.pem ; export X509_USER_CERT
+X509_USER_KEY=${cert_dir}/userkey.pem ; export X509_USER_KEY
+X509_USER_PROXY=${proxy_file} ; export X509_USER_PROXY
+
+# Now echo environment for evaluation
+#
+# Don't set X509_USER_KEY and X509_USER_CERT in the user's
+# environment as it messes up GSI libraries in GT 2.2
+#
+# Set GRID_PROXY_CERT_NAME so that if we are called again
+# we use it as the default.
+
+case ${shell} in
+  sh)
+    #echo "X509_USER_CERT=${X509_USER_CERT} ; export X509_USER_CERT ;"
+    #echo "X509_USER_KEY=${X509_USER_KEY} ; export X509_USER_KEY ;"
+    echo "X509_USER_PROXY=${X509_USER_PROXY} ; export X509_USER_PROXY ;"
+    echo "GRID_PROXY_CERT_NAME=${cert_name} ; export GRID_PROXY_CERT_NAME ;"
+    ;;
+
+  csh)
+    #echo "setenv X509_USER_CERT ${X509_USER_CERT} ;"
+    #echo "setenv X509_USER_KEY ${X509_USER_KEY} ;"
+    echo "setenv X509_USER_PROXY ${X509_USER_PROXY} ;"
+    echo "setenv GRID_PROXY_CERT_NAME ${cert_name} ;"
+    ;;
+
+  *)
+    echo "Internal error: unknown shell ${shell}" 1>&2
+    exit 1
+esac
 
 # Check to see if we have a valid proxy
 
-if test ${force} -eq 0 && ${grid_proxy_info} -exists ; then
+if test ${force} -eq 0 && ${grid_proxy_info} -exists >& /dev/null ; then
 
   # We have a valid proxy, print time left
 
