@@ -17,7 +17,7 @@ $makefile_header = "makefile_header";
 
 $modules = "modules";
 
-my @suffix_list = ( ".sh", ".pl" );
+my @suffix_list = ( ".sh", ".pl", ".py" );
 
 ######################################################################
 #
