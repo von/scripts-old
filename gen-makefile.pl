@@ -64,8 +64,8 @@ line: while(<MODULES>) {
   /^\s*$/ && next line;
 
   # Concatenate lines with escaped carriage returns
-  if (s/\\$//) {
-    s/\n//;
+  if (s/\\\s*$//) {
+    s/\s*\n/ /;
     $_ .= <MODULES>;
     redo line unless eof MODULES;
   }
