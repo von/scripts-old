@@ -25,6 +25,7 @@
 
 # General options
 %Options = (
+	    "config_file"             => $ENV{HOME} . "/.xterminal/config",
 	    "debug"                   => 0,
 	  );
 
@@ -72,7 +73,9 @@ $Title_Krb5_Encrypt =          "(Krb5 Encrypted)";
 
 ######################################################################
 
-read_config_file($ENV{HOME} . "/.xterminal/config");
+if (-e $Options{"config_file"}) {
+  read_config_file($Options{"config_file"});
+}
 
 use Getopt::Long;
 
