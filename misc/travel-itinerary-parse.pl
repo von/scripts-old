@@ -243,7 +243,7 @@ sub parse_date {
 }
 
 sub air_event_start {
-  if (/^\s*Air/i) {
+  if (/^\s*Air\s+/i) {
     change_state("AirEvent");
 
     new_event();
@@ -326,7 +326,7 @@ sub parse_to {
 }
 
 sub parse_departs {
-  if (/(DEPARTS|DEPART:)\s*(TERMINAL \d+)/) {
+  if (/(DEPARTS|DEPART:).*(TERMINAL \d+)/) {
     $Event->{departs} = strip_whitespace($2);
     return 1;
   }
@@ -343,7 +343,7 @@ sub parse_car_co {
 
 sub parse_drop_off {
   if (/Drop Off:/) {
-    $Event->{drop_off} = date_parse + time_parse();
+    $Event->{drop_off} = date_parse();
   }
   return 0;
 }
@@ -412,8 +412,7 @@ Arriving %s at %s
 sub print_car_event {
   my $event = shift;
 
-  printf("
-%s (Confirmation# %d)
+  printf("%s (Confirmation# %d)
 City: %s
 Rate: \$%.2f Drop off: %s
 ",
@@ -427,8 +426,7 @@ Rate: \$%.2f Drop off: %s
 sub print_hotel_event {
   my $event = shift;
 
-  printf("
-%s (Phone: %s)
+  printf("%s (Phone: %s)
 %s
 Rate: \$%.2f Confirmatoin# %d
 Check out: %s
@@ -463,12 +461,14 @@ sub date_parse {
 		};
 
   # Set defaults
-  my $mday = 0;
-  my $mon = 0;
-  my $year = 0;
-  my $sec = 0;
-  my $min = 0;
-  my $hours = 0;
+  my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday) = gmtime();
+
+  # Zero everything, but save the year
+  $mday = 0;
+  $mon = 0;
+  $sec = 0;
+  $min = 0;
+  $hours = 0;
 
   # 01Aug02
   if (/(\d\d)\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dev)\s*(\d\d)?/i)
