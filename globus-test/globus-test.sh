@@ -14,7 +14,7 @@
 # Configuration
 #
 echo_commands=0
-exit_on_error=0
+exit_on_error=1
 run_gram_tests=1
 run_gridftp_tests=1
 run_mds_tests=1
@@ -29,7 +29,7 @@ usage() {
 Usage: $0 [<options>] <target host>
 
 Options are:
-  -e      Exit on error.
+  -e      Don't exit on error.
   -F      Skip GridFTP tests
   -G      Skip GRAM tests
   -h      Print this help and exit
@@ -45,6 +45,10 @@ EOF
 #
 
 globusrun="globusrun"
+globus_job_run="globus-job-run"
+globus_job_submit="globus-job-submit"
+globus_job_status="globus-job-status"
+globus_job_get_output="globus-job-get-output"
 globus_url_copy="globus-url-copy"
 grid_info_search="grid-info-search"
 grid_proxy_info="grid-proxy-info"
@@ -52,6 +56,7 @@ grid_proxy_info="grid-proxy-info"
 diff="diff"
 rm="rm"
 sed="sed"
+date="/bin/date"
 
 ######################################################################
 #
@@ -69,8 +74,8 @@ while getopts eFGhMx arg
 do
   case $arg in
   e)
-    echo "Will exit on error."
-    exit_on_error=1
+    echo "Will continue on error."
+    exit_on_error=0
     ;;
   F)
     echo "Skipping GridFTP tests."
@@ -151,23 +156,23 @@ if [ $run_gram_tests -eq 1 ]; then
   echo "Globusrun authenticate only test..."
   $globusrun -a -r $target
 
-  echo "globusrun /bin/date submission..."
-  $globusrun -o -r $target '&(executable=/bin/date)'
+  echo "globus-job-run $date submission..."
+  $globus_job_run $target $date
 
-  echo "Running simple globusrun with local GASS server..."
-  $globusrun -s -r $target '&(executable=$(GLOBUSRUN_GASS_URL)/bin/date)'
+  echo "globus-job-run with staged $date..."
+  $globus_job_run $target -stage $date
 
-  echo "Running batch globus job..."
-  job_id=`$globusrun -b -quiet -r $target '&(executable=/bin/sleep)(arguments=360)'`
+  echo "globus-job-submit of $date..."
+  job_url=`$globus_job_submit $target $date`
   
   if [ $? -eq 0 ]; then
-    echo "Job id is $job_id"
+    echo "Job url is $job_url"
 
-    echo "Querying status of batch job..."
-    $globusrun -status $job_id
+    echo "Querying status of submitted job..."
+    $globus_job_status $job_url
 
-    echo "Killing batch job..."
-    $globusrun -kill $job_id
+    echo "Getting output of submitted job..."
+    $globus_job_get_output $job_url
   fi
   
   echo "GRAM tests complete."
@@ -225,7 +230,7 @@ if [ $run_mds_tests -eq 1 ]; then
   echo "Running MDS tests:"
 
   echo "Doing basic grid-info-search..."
-  $grid_info_search -anonymous -L -h $target | head -10
+  $grid_info_search -anonymous -L -h $target "(objectclass=MdsComputer)" dn Mds-Os-name
 
   echo "MDS tests complete."
 fi
