@@ -34,6 +34,7 @@ utils:		cpdir.sh \
 		html_view.pl \
 		htmlize.pl \
 		httpd-cleanup.sh \
+		mail-tunnels.py \
 		my-ssh-agent.sh \
 		myfetchmail.pl \
 		mykinit.pl \
@@ -45,7 +46,8 @@ utils:		cpdir.sh \
 		ns.pl \
 		parse_bookmarks.pl \
 		treegrep.pl \
-		unix2dos.pl
+		unix2dos.pl \
+		update-subdirs.sh
 
 xterminal: xterminal.pl
 
