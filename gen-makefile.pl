@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 ######################################################################
 #
 # gen-makefile
@@ -41,7 +41,7 @@ open(MAKEFILE, ">$makefile") ||
 select MAKEFILE;
 
 open(MAKEFILE_HEADER, $makefile_header) ||
-  die "Couldn't open $makefile_header for readinge: $!";
+  die "Couldn't open $makefile_header for reading: $!";
 
 while(<MAKEFILE_HEADER>) {
   print;
@@ -67,7 +67,7 @@ line: while(<MODULES>) {
   if (s/\\$//) {
     s/\n//;
     $_ .= <MODULES>;
-    redo unless eof();
+    redo line unless eof MODULES;
   }
 
   # Format should be "<module>: <files>"
