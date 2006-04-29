@@ -12,7 +12,7 @@ import Getch
 import signal
 import termios
 import time
-
+from threading import Thread, Event, RLock
 
 ######################################################################
 #
@@ -79,11 +79,16 @@ except:
     ncsaWirelessLoginUrl = "https://ncsa-portal.wireless.ncsa.edu/captive_auth/"
 
 ######################################################################
+
+if debug:
+    print "Targets = %s" % targets
+
+######################################################################
 #
 # Tunnel class
 #
 
-class Tunnel:
+class Tunnel(Thread):
     ssh_program = "ssh"
     # Minimum time between connection attempts in seconds
     backoff = 60
@@ -93,14 +98,22 @@ class Tunnel:
     CONNECTED = 1
     DYING = 2
     CONNECTING = 3
+
     state = UNCONNECTED
 
-    def __init__(self, name, target, auth="ssh-agent"):
+    # Are we in the process of quiting?
+    quiting = False
+
+    debug = False
+
+    def __init__(self, name, target, auth="ssh-agent", debug=False):
 	"""name is nice name of target
 	target is the hostname to pass to ssh"""
+	Thread.__init__(self, name=name)
 	self.name = name
 	self.target = target
 	self.auth = auth
+	self.debug = debug
 	if auth == "ssh-agent":
 	    self.check_creds = ssh_agent_check_creds
 	    self.get_creds = ssh_agent_get_creds
@@ -111,11 +124,44 @@ class Tunnel:
 	    self.check_creds = none_check_creds
 	    self.get_creds = none_check_for_creds
 	else:
-	    print "Unknown authentication method \"%s\" for %s" % (auth, name)
+	    self.message("Unknown authentication method \"%s\"" % auth)
 	    self.check_creds = none_check_creds
 	    self.get_creds = none_get_creds
 	self.pid = None
 	self.last_attempt = None
+	self.lock = RLock()
+	self.event = Event()
+	# Go ahead and set event so that run() will start first time
+	# it is called.
+	self.event.set()
+	self.debugMsg("Tunnel to %s (%s) created." % (name, target))
+
+    def run(self):
+	self.debugMsg("Thread started.")
+	while (not self.quiting):
+	    self.event.wait(self.backoff)
+	    self.event.clear()
+	    self.acquireLock()
+	    if self.state == self.CONNECTED:
+		# Nothing to do
+		pass
+	    elif self.state == self.UNCONNECTED:
+		if ((self.last_attempt == None) or
+		    (time.time() - self.last_attempt > self.backoff)):
+		    # Enough time elapsed since last attempt, try again
+		    # to connect.
+		    self.connect()
+	    elif self.state == self.CONNECTING:
+		# Nothing to do
+		pass
+	    elif self.state == self.DYING:
+		# Nothing to do
+		pass
+	    else:
+		# Unknown state
+		self.message("Unknown state (%d)" % self.state)
+		self.state = self.UNCONNECTED
+	    self.releaseLock()
 
     def connect(self):
 	if self.state != self.UNCONNECTED:
@@ -124,9 +170,14 @@ class Tunnel:
 	if self.last_attempt != None:
 	    if time.time() - self.last_attempt < self.backoff:
 		# No enough time elapses since last attempt
-		# Set alarm to try again later
-		signal.alarm(self.backoff)
+		# Try again later
 		return None
+	# Do we have network connectivity?
+	# XXX target may be a name from ssh config and not a real hostname
+	#if check_network(self.target) == False:
+	#    self.debugMsg("No network connectivity to %s" % self.target)
+	#    return None
+	self.acquireLock()
 	self.state = self.CONNECTING
 	# Make sure we have credentials to connect
         if self.check_creds() is False:
@@ -140,38 +191,11 @@ class Tunnel:
 			      # No output messages
 			      #"-q",
 			      self.target)
-	print "Connecting to %s (%s, pid is %d)" % (self.name, self.target, self.pid)
+	self.message("Connecting to %s" % self.target)
 	self.last_attempt = time.time()
 	self.state = self.CONNECTED
-	# This sleep prevents too many ssh's from starting at once
-	# and getting deadlocked trying to lock the Kerberos cache
-	sleep(1)
+	self.releaseLock()
 	return self.pid
-
-    def regularCall(self):
-	"""Called on regular based to allow tunnel to attempt conection or respond to events."""
-	if self.state == self.CONNECTED:
-	    # Nothing to do
-	    pass
-	elif self.state == self.UNCONNECTED:
-	    if (self.last_attempt == None) or (time.time() - self.last_attempt > self.backoff):
-		# Enough time elapses since last attempt, try again
-		# to connect.
-		self.connect()
-	elif self.state == self.CONNECTING:
-	    # Nothing to do
-	    pass
-	elif self.state == self.DYING:
-	    if os.WIFSIGNALED(self.exitStatus):
-		# Yes, intentional death
-		print "Tunnel to %s completed closing (pid %d)" % (self.name, self.pid)
-	    else:
-		print "Tunnel to %s died unexpectedly (pid %d)" % (self.name, self.pid)
-	    self.pid = None
-	    self.state = self.UNCONNECTED
-	else:
-	    # Unknown state
-	    pass
 
     def reconnect(self):
 	self.close()
@@ -180,30 +204,42 @@ class Tunnel:
     def sigchild(self, status):
 	"""Called by signal handler when ssh process dies."""
 	if self.state == self.UNCONNECTED:
-	    # Shouldn't happen
-	    print "Disconnected tunnel to %s died." % self.name
+	    self.message("Disconnected tunnel died.")
+	    return
+	self.acquireLock()
 	# See if a signal killed the child
-	elif os.WIFSIGNALED(status):
+	if os.WIFSIGNALED(status):
 	    # Yes, intentional death
-	    print "Tunnel to %s completed closing (pid %d)" % (self.name, self.pid)
+	    self.message("Completed closing")
 	else:
-	    print "Tunnel to %s died unexpectedly (pid %d)" % (self.name, self.pid)
+	    self.message("Died unexpectedly")
 	self.exitStatus = status
 	self.pid = None
 	self.state = self.UNCONNECTED
+	self.releaseLock()
 
     def close(self):
-	if self.state == self.CONNECTED:
-	    print "Disconnecting from %s (pid %d)" % (self.name, self.pid)
-	    try:
-		os.kill(self.pid, signal.SIGKILL)
-	    except:
-		print "Signal to pid %d failed" % self.pid
-		return
-	self.state = self.DYING
-	# Allow for immediate reconnection after an explicit close
-	self.last_attempt = None
-	# Let SIGCHLD handler to the cleanup and call disconnected()
+	if self.state != self.CONNECTED:
+	    return
+	self.acquireLock()
+	self.message("Disconnecting")
+	try:
+	    os.kill(self.pid, signal.SIGKILL)
+	except:
+	    self.message("Signal failed")
+	else:
+	    self.state = self.DYING
+	    # Allow for immediate reconnection after an explicit close
+	    self.last_attempt = None
+	    # Let SIGCHLD handler to the cleanup and call disconnected()
+	self.releaseLock()
+
+    def quit(self):
+	self.acquireLock()
+	self.quiting = True
+	self.close()
+	self.event.set()
+	self.releaseLock()
 
     def dump(self):
 	print "Tunnel to %s:" % self.name
@@ -221,8 +257,25 @@ class Tunnel:
 	    print "\tPid is %d" % self.pid
 	print "\tAuthentication: %s" % self.auth
 
+    def acquireLock(self):
+	self.lock.acquire()
+
+    def releaseLock(self):
+	self.lock.release()
+
+    def message(self, msg):
+	if self.pid:
+	    pidStr = " (pid %d)" % self.pid
+	else:
+	    pidStr = ""
+	print "Tunnel to %s%s: %s" % (self.name, pidStr, msg)
+
+    def debugMsg(self, msg):
+	if self.debug:
+	    self.message(msg)
+
     def __del__(self):
-	self.close()
+	self.quit()
 
 ######################################################################
 #
@@ -264,7 +317,7 @@ def do_ncsa_wireless_login(url, username, passwd):
 
 def run_cmd(cmd, quiet=False):
     if quiet and not debug:
-	cmd = cmd + " > /dev/null"
+	cmd = cmd + " >& /dev/null"
     else:
 	print "Running %s..." % cmd
     # XXX Add timeout
@@ -296,8 +349,8 @@ def getpassword():
     enable_signals()
     return password
 
-def check_for_default_route():
-    status = run_cmd("netstat -rn | grep default", quiet=True)
+def check_network(target):
+    status = run_cmd("ping -c 1 %s" % target, quiet=True)
     return (status == 0)
 
 ######################################################################
@@ -391,7 +444,7 @@ def quit():
     # Manually close all of our tunnels, as garbage collection seems
     # to miss one (the last one?)
     for tunnel in tunnels:
-	tunnel.close()
+	tunnel.quit()
     sys.exit(0)
 
 def ncsa_login():
@@ -455,13 +508,6 @@ def handle_sigchild(signum, frame):
 def handle_sigint(signum, frame):
     quit()
 
-def handle_sigalarm(signum, frame):
-    if check_for_default_route():
-	# Connect any unconnected tunnels
-	for tunnel in tunnels:
-	    tunnel.connect()
-    signal.alarm(recheck_period)
-
 def disable_signals():
     """Block signals for a critical piece of code."""
     if debug: print "Disabling signals."
@@ -477,8 +523,6 @@ def enable_signals():
     if debug: print "Enabling signals"
     signal.signal(signal.SIGCHLD, handle_sigchild)
     signal.signal(signal.SIGINT, handle_sigint)
-    signal.signal(signal.SIGALRM, handle_sigalarm)
-    signal.alarm(recheck_period)
 
 ######################################################################
 #
@@ -492,29 +536,43 @@ tunnels = list()
 for target in targets:
     host = config.get(target, "host")
     auth = config.get(target, "auth")
-    tunnel = Tunnel(target, host, auth=auth)
+    tunnel = Tunnel(target, host, auth=auth, debug=debug)
     tunnels.append(tunnel)
 
-# And connect
 for tunnel in tunnels:
-    tunnel.connect()
+    tunnel.start()
 
 Getchar = Getch.Getch()
 
 # Main loop, runs forever
 while True:
     try:
+	if debug:
+	    print "Waiting for command."
 	c = Getchar()
 	f = functions[c]
     except KeyError:
 	# Unknown key entered by user, ignore
+	if debug:
+	    print "Unknown key \"%s\"" % c
 	pass
     except (IOError, termios.error):
 	# Interrupted system call, ignore
+	if debug:
+	    print "Interrupted system call."
 	pass
     else:
 	# Call function bound to key
-	f()
+	try:
+	    if debug:
+		print "Calling %s()" % repr(f)
+	    f()
+	except SystemExit, e:
+	    raise e
+	except Exception, e:
+	    print "Caught exception: %s" % repr(e)
+	    quit()
+	    raise e
 
 # Should never get here
 
