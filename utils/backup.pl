@@ -1,24 +1,45 @@
-#!/usr/local/bin/perl
+#!/usr/bin/env perl
 ######################################################################
 #
 # Backup to my PCMCIA harddrive
+#
+# $Id$
 #
 ######################################################################
 #
 # Configuration
 
-$CygwinRoot = "C:/cygwin";
 
 ######################################################################
 #
-# Figure out which drive is the PCMCIA harddrive, which should be
-# the same one that this script is.
+# Find the backup volume
 
-if ($0 =~ /^(\w:)/) {
-  $Prefix = $1;
-} else {
-  $Prefix = ".";
+my $backup_path = undef;
+
+my @potential_paths =
+    (
+     "/Volumes/USB Drive/",
+     "/Volumes/FIRE&FORGET/"
+    );
+
+foreach my $path (@potential_paths)
+{
+    if ( -d $path )
+    {
+	$backup_path = $path;
+	last;
+    }
 }
+
+if (!defined($backup_path))
+{
+    print STDERR "Could not find backup volume.\n";
+    exit(1);
+}
+
+print "Backing up to volume " . $backup_path . "\n";
+
+my $Prefix = $backup_path;
 
 ######################################################################
 #
@@ -28,26 +49,18 @@ if ($0 =~ /^(\w:)/) {
 
 # Home directory
 $Home = $ENV{HOME} || die "HOME not defined.";
-push(@BackupDirs, $Home . "/My Documents");
 
-push(@BackupDirs, $Home . "/Mail");
-
-push(@BackupDirs, $Home . "/.xemacs");
-push(@BackupDirs, $Home . "/develop");
-
-push(@BackupDirs, $Home . "/.bbdb");
-push(@BackupDirs, $Home . "/.profile");
-
-# Outlook data
-push(@BackupDirs,
-     $Home . "/Local Settings/Application Data/Microsoft/Outlook");
-
-# Putty Configuration
-# XXX If I add another registry backup, make a function for this
-print("Exporting PUTTY configuration from registry\n");
-my $putty_reg = $Prefix . "/putty.reg";
-system("regedit /e $putty_reg HKEY_CURRENT_USER\\Software\\SimonTatham\\PuTTY");
-push(@BackupDirs, $putty_reg);
+push(@BackupDirs, $Home . "/Documents/");
+push(@BackupDirs, $Home . "/Library/Keychains/");
+push(@BackupDirs, $Home . "/Library/Preferences/");
+push(@BackupDirs, $Home . "/Library/Mail/");
+push(@BackupDirs, $Home . "/creds/");
+push(@BackupDirs, $Home . "/homestuff/");
+push(@BackupDirs, $Home . "/lib/");
+push(@BackupDirs, $Home . "/mail/");
+push(@BackupDirs, $Home . "/scripts/");
+push(@BackupDirs, $Home . "/.globus/");
+push(@BackupDirs, $Home . "/develop/scripts/");
 
 ######################################################################
 #
@@ -56,14 +69,6 @@ push(@BackupDirs, $putty_reg);
 @ExcludeFiles = ();
 
 push(@ExcludeFiles, "*.tmp");
-
-# Eudora cruft
-push(@ExcludeFiles, $HOME . "/My Documents/Personal Email/Embedded/*");
-push(@ExcludeFiles, "Trash.mbx");
-push(@ExcludeFiles, "Trash.toc");
-
-# Development stuff
-push(@ExcludeFiles, $HOME . "/develop/*");
 
 # I don't need OLD stuff
 push(@ExcludeFiles, "OLD/*");
@@ -75,22 +80,55 @@ push(@ExcludeFiles, "~$*.doc");
 push(@ExcludeFiles, "*~");
 push(@ExcludeFiles, "#*#");
 
-# Web browser caches (XXX May be too broad)
-push(@ExcludeFiles, "Cache/*");
+# Directories to skip
+push(@ExcludeFiles, $Home . "/mail/spam/*");
+push(@ExcludeFiles, $Home . "/mail/procmail-logs/*");
+push(@ExcludeFiles, $Home . "/Documents/Microsoft User Data/*");
+push(@ExcludeFiles, $Home . "/Library/Mail/POP-vwelch@localhost:11110/Junk.mbox/*");
+push(@ExcludeFiles, $Home . "/Library/Mail/Bundles/*");
+push(@ExcludeFiles, $Home . "/Library/Mail/Bundles (Disabled)/*");
+push(@ExcludeFiles, $Home . "/Library/Preferences/PokerAcademyPro/*");
+push(@ExcludeFiles, $Home . "/Library/Preferences/PokerAcademyProDemo/*");
 
-# Skip all my pictures as they take too long
-push(@ExcludeFiles, $HOME . "/My Documents/My Pictures/*");
+my $ExcludeFile = $Prefix . "/backup-excludes"
 
-# Misc
-push(@ExcludeFiles, "/Config/Personal Web Browser Profile");
+if (!open(EXCLUDES, ">$ExcludeFile"))
+{
+    die "Could not open $ExcludeFile: $!";
+}
 
+forach my $exclude (@ExcludeFiles)
+{
+    print EXCLUDES $exclude . "\n";
+}
 
+close(EXCLUDES);
 
 ######################################################################
 
 # Name of backup file
-$TarFile = $Prefix . "\\backup.tar";
-$OldTarFile = $Prefix . "\\backup-old.tar";
+$TarFile = $Prefix . "/backup.tar";
+$OldTarFile = $Prefix . "/backup-old.tar";
+
+# Name of log file
+$LogFile = $Prefix . "/backup.log";
+
+if (-e $LogFile)
+{
+    unlink $LogFile
+}
+
+
+# Redirect STDOUT to tee, puting it both to the screen and the log file
+if (!open(STDOUT, "|tee -a \"$LogFile\""))
+{
+    die "Could not direct STDOUT: $!";
+}
+
+if (!open(STDERR, ">&STDOUT"))
+{
+    die "Could not direct STDERR: $!";
+}
 
 ######################################################################
 #
@@ -111,40 +149,33 @@ if ( -e $TarFile ) {
 #
 # Do backup
 
-@ARG = ($CygwinRoot . "/bin/tar");
+@ARG = ("tar");
 push(@ARG, "-c"); # create
 push(@ARG, "-v"); # verbose mode
-push(@ARG, "-f", cygwin_path($TarFile));
+push(@ARG, "-f", $TarFile);
 
-foreach my $ExcludeFile (@ExcludeFiles)
-{
-  push(@ARG, "--exclude=\"" . cygwin_path($ExcludeFile) . "\"");
-}
+# Ignore leading "/" in exclude patterns
+push(@ARG, "--no-anchored");
+
+push(@ARG, "--exclude-from", $ExcludeFile);
 
 foreach my $BackupDir (@BackupDirs)
 {
-  push(@ARG, "\"" . cygwin_path($BackupDir) . "\"");
+  push(@ARG, $BackupDir);
 }
+
+
+$date_string = localtime();
+print "Backup date: " . $date_string . "\n";
 
 print join(' ', @ARG) . "\n";
 
 system(@ARG);
 
-print "Done.\n";
+$date_string = localtime();
+print "Done: " . $date_string . "\n";
 
 sleep(10);
 
 exit(0);
 
-######################################################################
-#
-# cygwin_path
-#
-# Convert a windows path to a cygwin path.
-
-sub cygwin_path {
-  my $path = shift;
-  $path =~ s|(\w):|/cygdrive/$1|;
-  $path =~ s|\\|/|g;
-  return $path;
-}
