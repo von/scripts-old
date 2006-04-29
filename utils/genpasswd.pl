@@ -16,11 +16,7 @@ $MINLENGTH = 8;
 
 $MAXLENGTH = 12;
 
-$PRINTABLE_MIN = 33;
-
-$PRINTABLE_MAX = 126;
-
-$CHAR_TYPE = "printable";
+$char_type = "printable";
 
 ######################################################################
 
@@ -28,32 +24,36 @@ use Getopt::Std;
 
 getopts("hl:p");
 
-$CHAR_TYPE = "hex"
+$char_type = "hex"
     if $opt_h;
 
-$NUM_CHARS = $opt_l;
+$num_chars = $opt_l;
 
-$CHAR_TYPE = "printable"
+$char_type = "printable"
     if $opt_p;
 
 ######################################################################
 
 srand();
 
-$NUM_CHARS = int(rand($MAXLENGTH - $MINLENGTH)) + $MINLENGTH
-    if !defined($NUM_CHARS);
+my $num_chars = int(rand($MAXLENGTH - $MINLENGTH)) + $MINLENGTH
+    if !defined($num_chars);
 
-for($CHAR_NUM = 0; $CHAR_NUM < $NUM_CHARS; $CHAR_NUM++) {
-    if ($CHAR_TYPE eq "printable") {
-	$ASCII = int(rand($PRINTABLE_MAX - $PRINTABLE_MIN)) + $PRINTABLE_MIN;
-	print pack("c", $ASCII);
+@printable = a..z;
+push(@printable, A..Z);
+push(@printable, 0..9);
+
+for(my $char_num = 0; $char_num < $num_chars; $char_num++) {
+    if ($char_type eq "printable") {
+	my $index = int(rand($#printable + 1));
+	print $printable[$index];
 	
-    } elsif ($CHAR_TYPE eq "hex") {
-	$CHAR = sprintf("%x", int(rand(16)));
-	print $CHAR;
+    } elsif ($char_type eq "hex") {
+	my $char = sprintf("%x", int(rand(16)));
+	print $char;
 
     } else {
-	print STDERR "$0: Unknown type \"$CHAR_TYPE\".";
+	print STDERR "$0: Unknown type \"$char_type\".\n";
     }
 }
 
