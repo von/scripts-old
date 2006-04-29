@@ -7,17 +7,17 @@
 #
 ######################################################################
 
-agent_dir=$HOME/.ssh-agent
-
 # exit on any error
 set -e
 
+host=`hostname | awk -F. '{print $1}' -`
+
+agent_dir=$HOME/.ssh/$host
+
+agent_file=${agent_dir}/agent
+
 if [ ! -d $agent_dir ]; then
-  echo "Making $agent_dir"
   mkdir $agent_dir
 fi
 
-host=`hostname | awk -F. '{print $1}' -`
-
-# Remove echo line
-ssh-agent | grep -v echo > $agent_dir/$host
+ssh-agent -a $agent_file > ${agent_dir}/log 2>&1
