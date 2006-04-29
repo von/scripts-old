@@ -100,6 +100,7 @@ class Tunnel(Thread):
     CONNECTING = 3
 
     state = UNCONNECTED
+    pid = None
 
     # Are we in the process of quiting?
     quiting = False
@@ -545,6 +546,7 @@ for tunnel in tunnels:
 Getchar = Getch.Getch()
 
 # Main loop, runs forever
+# XXX For some reason first call to Getchar() always gets interrupted
 while True:
     try:
 	if debug:
