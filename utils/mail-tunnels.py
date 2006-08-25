@@ -5,6 +5,7 @@
 #
 # $Id$
 #
+
 import os
 import os.path
 import sys
@@ -76,7 +77,10 @@ except:
 try:
     ncsaWirelessLoginUrl = config.get("parameters", "ncsa_wireless_login_url")
 except:
-    ncsaWirelessLoginUrl = "https://ncsa-portal.wireless.ncsa.edu/captive_auth/"
+    # Old, pre-May '06 value
+    #ncsaWirelessLoginUrl = "https://ncsa-portal.wireless.ncsa.edu/captive_auth/"
+    # New, post-May '06 value
+    ncsaWirelessLoginUrl = "https://ncsa-portal.ncsa.uiuc.edu:8001"
 
 ######################################################################
 
@@ -220,19 +224,18 @@ class Tunnel(Thread):
 	self.releaseLock()
 
     def close(self):
-	if self.state != self.CONNECTED:
-	    return
 	self.acquireLock()
-	self.message("Disconnecting")
-	try:
-	    os.kill(self.pid, signal.SIGKILL)
-	except:
-	    self.message("Signal failed")
-	else:
-	    self.state = self.DYING
-	    # Allow for immediate reconnection after an explicit close
-	    self.last_attempt = None
-	    # Let SIGCHLD handler to the cleanup and call disconnected()
+	if self.state == self.CONNECTED:
+	    self.message("Disconnecting")
+	    try:
+		os.kill(self.pid, signal.SIGKILL)
+	    except:
+		self.message("Signal failed")
+	    else:
+		self.state = self.DYING
+		# Allow for immediate reconnection after an explicit close
+		self.last_attempt = None
+		# Let SIGCHLD handler do the cleanup and call disconnected()
 	self.releaseLock()
 
     def quit(self):
@@ -265,11 +268,15 @@ class Tunnel(Thread):
 	self.lock.release()
 
     def message(self, msg):
+	import time
 	if self.pid:
 	    pidStr = " (pid %d)" % self.pid
 	else:
 	    pidStr = ""
-	print "Tunnel to %s%s: %s" % (self.name, pidStr, msg)
+	timeStr = time.strftime("%H:%M")
+	# Append '\r' here as otherwise some interaction with signals handling
+	# and/or threads causes linefeed w/o carriage return.
+	print "(%s) Tunnel to %s%s: %s\r" % (timeStr, self.name, pidStr, msg)
 
     def debugMsg(self, msg):
 	if self.debug:
@@ -288,11 +295,17 @@ def do_ncsa_wireless_login(url, username, passwd):
     import httplib
     import urllib
 
-    print "Logging into NCSA wireless portal as %s" % username
-
-    params = urllib.urlencode({'login' : username,
-			       'passwd' : passwd,
-			       'go' : "Login"})
+    params = urllib.urlencode({
+	    # These are the old values (pre-May '06)
+	    'login' : username,
+	    'passwd' : passwd,
+	    'go' : "Login",
+	    # These are the new values (post-May '06)
+	    'auth_user' : username,
+	    'auth_pass' : passwd,
+	    'redirurl' : "http://www.google.com/",
+	    'accept' : "Continue"
+	    })
 
     try:
 	response = urllib.urlopen(url, params)
@@ -303,9 +316,8 @@ def do_ncsa_wireless_login(url, username, passwd):
     data = response.read()
 
     # Try and figure out if login failed by scraping html returned
-    index = data.find("There were errors processing your form.")
-    if index != -1:
-	# String found
+    # We should have been redirected to google, so look for googe
+    if data.find("google") == -1:
 	print "Login failed."
 	return 0
     print "Success."
@@ -345,6 +357,7 @@ def getusername():
 def getpassword():
     import getpass
     # Turn off any signal handlers so that system call completes
+    # XXX If a tunnel dies while we're reading, that event is lost
     disable_signals()
     password = getpass.getpass()
     enable_signals()
@@ -431,6 +444,7 @@ def ncsa_wireless_login(username = None, password = None):
     """Login to NCSA wirless portal"""
     if username is None:
 	username = getusername()
+    print "Logging into NCSA wireless portal as %s" % username
     if password is None:
 	password = getpassword()
     do_ncsa_wireless_login(ncsaWirelessLoginUrl, username, password)
@@ -572,7 +586,7 @@ while True:
 	except SystemExit, e:
 	    raise e
 	except Exception, e:
-	    print "Caught exception: %s" % repr(e)
+	    print "Caught exception: %s: %s" % (repr(e), e)
 	    quit()
 	    raise e
 
