@@ -26,15 +26,20 @@ misc:		backup-email.sh \
 rfc:            rfc.pl
 
 # Actually day-to-day useful stuff
-utils:		cpdir.sh \
+utils:		backup.pl \
+		cpdir.sh \
 		doc_viewer.sh \
 		dos2unix.pl \
+		fastlane-display.sh \
 		fetchmail-util.sh \
 		genpasswd.pl \
+		html-email-clean.pl \
 		html_view.pl \
 		htmlize.pl \
 		httpd-cleanup.sh \
+		mac2unix.pl \
 		mail-tunnels.py \
+		majordomo-approver.py \
 		my-ssh-agent.sh \
 		myfetchmail.pl \
 		mykinit.pl \
@@ -42,11 +47,13 @@ utils:		cpdir.sh \
 		mystartx.sh \
 		mysyscntrl.sh \
 		ncsacomm.pl \
+		networkwatcher.py \
 		parse-todo.pl \
 		ns.pl \
 		parse_bookmarks.pl \
 		treegrep.pl \
 		unix2dos.pl \
+		unix2mac.pl \
 		update-subdirs.sh
 
 xterminal: xterminal.pl
