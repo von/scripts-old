@@ -17,21 +17,24 @@ set -e
 
 usage() {
 cat <<EOF
-Usage: $0 [<options>] <user name>
+Usage: $0 [<options>] <common name>
 
 Options:
- -c <ca name>            Name of issuing CA ("default" by default).
+ -c <ca directory>       Path for CA directory.
+ -d <target directory>   Where to put certificates.
  -h                      Print help and exit.
 EOF
 }
 
-ca_name="default"
+target_dir="."
+ca_dir="."
 
-while getopts c: arg
+while getopts c:d:h arg
 do
   case $arg in
-  c) # CA name
-    ca_name=$OPTARG ;;
+  c) # CA directory
+    ca_dir=$OPTARG ;;
+  d) target_dir=$OPTARG ;;
   h) usage ; exit 0 ;;
   ?)
     echo "Unknown option: -$ARG"
@@ -43,41 +46,27 @@ done
 shift `expr $OPTIND - 1`
 
 if [ $# -lt 1 ]; then
-  echo "User name required."
+  echo "Common name required."
   usage
   exit 1
 fi
 
-user_name=$1
+common_name=$1
 shift
 
 ######################################################################
 #
-# Create user directory
+# Validate target directory
 #
 
-if [ ! -d user ]; then
-  mkdir user
+if [ ! -d $target_dir ]; then
+  echo "Target directory $target_dir does not exist."
 fi
-
-user_dir="user/${user_name}"
-
-if [ -e $user_dir ]; then
-  echo "User directory $user_dir already exists."
-  exit 1;
-fi
-
-echo "Creating user directory $user_dir"
-
-
-mkdir $user_dir
 
 ######################################################################
 #
 # Find the ca
 #
-
-ca_dir=ca/${ca_name}
 
 if [ ! -d $ca_dir ]; then
   echo "Unknown ca $ca_name: $ca_dir not found"
@@ -98,13 +87,16 @@ fi
 
 echo "Generating the request"
 
-COMMON_NAME=${user_name}
+COMMON_NAME=${common_name}
+export COMMON_NAME
+
 OU_NAME="User"
+export OU_NAME
 
 ${openssl} req \
   -new \
-  -out $user_dir/req.pem \
-  -keyout $user_dir/key.pem \
+  -out ${target_dir}/req.pem \
+  -keyout ${target_dir}/key.pem \
   -config $ca_config \
   -nodes
 
@@ -120,8 +112,8 @@ ${openssl} ca \
   -config $ca_config \
   -name $ca_name \
   -preserveDN \
-  -in ${user_dir}/req.pem \
-  -out ${user_dir}/cert.pem
+  -in ${target_dir}/req.pem \
+  -out ${target_dir}/cert.pem
 
 ######################################################################
 #

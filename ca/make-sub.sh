@@ -17,23 +17,22 @@ set -e
 
 usage() {
 cat <<EOF
-Usage: $0 [<options>] [<ca name>]
-
-CA name will be "default" if not provided.
+Usage: $0 [<options>] <subordinate CA path> <subordinate CA name>
 
 Options:
-  -c <ca name>         Name of superior CA ("default" by default).
+  -c <ca path>         Path of superior CA
   -h                   Print help and exit.
 EOF
 }
 
-top_ca_name="default"
+target_dir="."
+ca_dir="."
 
 while getopts c:h arg
 do
   case $arg in
-  c) # Superior name
-    top_ca_name=$OPTARG ;;
+  c) # Superior CA path
+    ca_dir=$OPTARG ;;
   h) usage; exit 0 ;;
   ?)
     echo "Unknown option: -$ARG"
@@ -44,28 +43,35 @@ done
 
 shift `expr $OPTIND - 1`
 
-if [ $# -ne 1 ]; then
-  echo "Name of new CA required."
+if [ $# -gt 0 ]; then
+  target_dir=$1
+  shift
+else
+  echo "Missing CA directory argument"
   usage
   exit 1
 fi
 
-ca_name=$1
-shift
+if [ $# -gt 0 ]; then
+  ca_name=$1
+  shift
+else
+  echo "Missing CA name argument"
+  usage
+  exit 1
+fi
 
 ######################################################################
 #
 # Find superior CA
 #
 
-top_ca_dir=ca/$top_ca_name
-
-if [ ! -d $top_ca_dir ]; then
-  echo "Can't find superior CA: $top_ca_dir does not exist."
+if [ ! -d $ca_dir ]; then
+  echo "Can't find superior CA: $ca_dir does not exist."
   exit 1
 fi
 
-top_ca_config=${top_ca_dir}/ca.cnf
+top_ca_config=${ca_dir}/ca.cnf
 
 if [ ! -e $top_ca_config ]; then
   echo "Can't find configuration file for superior CA: $top_ca_config"
@@ -74,25 +80,19 @@ fi
 
 ######################################################################
 #
-# Create CA directory
+# Create target CA directory
 #
 
-if [ ! -d ca ]; then
-  mkdir ca
-fi
-
-ca_dir="ca/${ca_name}"
-
-if [ -e $ca_dir ]; then
+if [ -e $target_dir ]; then
   echo "CA directory $ca_dir already exists."
   exit 1;
 fi
 
-echo "Creating CA directory $ca_dir and contents"
-mkdir $ca_dir
-mkdir ${ca_dir}/certs
-touch ${ca_dir}/index.txt
-echo "01" > $ca_dir/serial
+echo "Creating CA directory $target_dir and contents"
+mkdir $target_dir
+mkdir ${target_dir}/certs
+touch ${target_dir}/index.txt
+echo "01" > ${target_dir}/serial
 
 ######################################################################
 #
@@ -101,15 +101,17 @@ echo "01" > $ca_dir/serial
 
 echo "Creating CA configuration"
 
-ca_config=$ca_dir/ca.cnf
-ca_key=$ca_dir/key.pem
-ca_cert=$ca_dir/cert.pem
+ca_config=$target_dir/ca.cnf
+ca_key=$target_dir/key.pem
+ca_cert=$target_dir/cert.pem
 pwd=`pwd`
 
 sed_script=""
-sed_script=${sed_script}"s\\Xdir\\${pwd}/${ca_dir}\\g;"
-sed_script=${sed_script}"s\\Xca_name\\${ca_name}\\g;"
-sed_script=${sed_script}"s\\Xca_key\\${pwd}/${ca_key}\\g;"
+sed_script=${sed_script}"s|Xdir|${target_dir}|g;"
+sed_script=${sed_script}"s|Xca_name|${ca_name}|g;"
+sed_script=${sed_script}"s|Xca_key|${ca_key}|g;"
+
+echo $sed_script
 
 sed $sed_script ca.cnf.in > $ca_config
 
@@ -122,7 +124,9 @@ echo "Generating subordinate CA certificate request"
 
 # These variables are used in CA configuration
 COMMON_NAME=${ca_name}
+export COMMON_NAME
 OU_NAME="Subordinate CA"
+export OU_NAME
 
 ca_req=${ca_dir}/req.pem
 
@@ -158,15 +162,15 @@ echo "Generating Globus-specific stuff"
 
 ca_hash=`${openssl} x509 -in $ca_cert -hash -noout`
 
-cp ${ca_cert} ${ca_dir}/${ca_hash}.0
+cp ${ca_cert} ${target_dir}/${ca_hash}.0
 
-ca_signing_policy=${ca_dir}/${ca_hash}.signing_policy
+ca_signing_policy=${target_dir}/${ca_hash}.signing_policy
 dn="/C=${COUNTRY_NAME}/O=${ORG_NAME}/OU=${OU_NAME}/CN=${COMMON_NAME}"
 namespace="/C=${COUNTRY_NAME}/O=${ORG_NAME}/*"
 
 sed_script=""
-sed_script="${sed_script}s\\Xdn\\${dn}\\g;"
-sed_script="${sed_script}s\\Xnamespace\\${namespace}\\g;"
+sed_script="${sed_script}s|Xdn|${dn}|g;"
+sed_script="${sed_script}s|Xnamespace|${namespace}|g;"
 
 sed "${sed_script}" signing_policy.in > $ca_signing_policy
 

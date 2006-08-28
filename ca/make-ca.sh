@@ -19,7 +19,7 @@ COUNTRY_NAME="US"
 STATE_NAME="SomeState"
 EMAIL_ADDR="test@example.org"
 ORG_NAME="SomeOrg"
-OU_NAME="SomeOU"
+OU_NAME="CA"
 
 ######################################################################
 #
@@ -28,20 +28,23 @@ OU_NAME="SomeOU"
 
 usage() {
 cat <<EOF
-EOF
-Usage: $0 [<options>] [<ca name>]
-
-CA name will be "default" if not provided.
+Usage: $0 [<options>] <CA path> <CA name>
 
 Options:
+  -c                   Set country of CA [default: US]
   -h                   Print help and exit.
+  -o <organization>    Set organization of CA [default: SomeOrg]
+  -u <orgUnit>         Set organizational unit of CA [default: CA]
 EOF
 }
 
-while getopts h arg
+while getopts c:ho:u: arg
 do
   case $arg in
+  c) COUNTRY_NAME=$OPTARG ;;
   h) usage ; exit 0 ;;
+  o) ORG_NAME=$OPTARG ;;
+  u) OU_NAME=$OPTARG ;;
   ?)
     echo "Unknown option: -$ARG"
     usage
@@ -52,22 +55,27 @@ done
 shift `expr $OPTIND - 1`
 
 if [ $# -gt 0 ]; then
+  ca_dir=$1
+  shift
+else
+  echo "Missing CA directory argument"
+  usage
+  exit 1
+fi
+
+if [ $# -gt 0 ]; then
   ca_name=$1
   shift
 else
-  ca_name="default"
+  echo "Missing CA name argument"
+  usage
+  exit 1
 fi
 
 ######################################################################
 #
 # Create CA directory
 #
-
-if [ ! -d ca ]; then
-  mkdir ca
-fi
-
-ca_dir="ca/${ca_name}"
 
 if [ -e $ca_dir ]; then
   echo "CA directory $ca_dir already exists."
@@ -93,9 +101,9 @@ ca_cert=$ca_dir/cert.pem
 pwd=`pwd`
 
 sed_script=""
-sed_script=${sed_script}"s|Xdir|${pwd}/${ca_dir}|g;"
+sed_script=${sed_script}"s|Xdir|${ca_dir}|g;"
 sed_script=${sed_script}"s|Xca_name|${ca_name}|g;"
-sed_script=${sed_script}"s|Xca_key|${pwd}/${ca_key}|g;"
+sed_script=${sed_script}"s|Xca_key|${ca_key}|g;"
 sed_script=${sed_script}"s|Xstate_name|${STATE_NAME}|g;"
 sed_script=${sed_script}"s|Xcountry_name|${COUNTRY_NAME}|g;"
 sed_script=${sed_script}"s|Xemail_addr|${EMAIL_ADDR}|g;"
@@ -114,7 +122,6 @@ echo "Generating CA certificate"
 # These variables are used in CA configuration
 COMMON_NAME=${ca_name}
 export COMMON_NAME
-OU_NAME=CA
 export OU_NAME
 
 ${openssl} req -x509 -newkey rsa \
