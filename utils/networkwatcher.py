@@ -6,9 +6,10 @@ based on the SSID of the wireless network your system is connected to.
 It currently supports setting the default printer as well as executing
 a arbitrary command.
 
-This script works by using launchd to watch the
-/Library/Preferences/SystemConfiguration directory, which changes
-everytime the local network configuration changes.
+This script works by using launchd to watch the file
+/Library/Preferences/SystemConfiguration/com.apple.aurport.preferences.plist
+and /var/run/resolve.conf, which change when the local network
+configuration changes.
 
 Many ideas taken from work by Onne Gorter <o.gorter@gmail.com> at:
 http://tech.inhelsinki.nl/locationchanger/
@@ -20,7 +21,7 @@ Installation Directions
 2) Create ~/Library/LaunchAgents/networkwatcher.plist file using the
 tempalte below. Do not include the "--begin template--" and
 "--end template--" strings. Replace "*PATH*" with the path to where
-you install this script.
+you installed this script.
 
 --begin template--
 <?xml version="1.0" encoding="UTF-8"?>
@@ -36,19 +37,24 @@ you install this script.
 	</array>
 	<key>WatchPaths</key>
 	<array>
-		<string>/Library/Preferences/SystemConfiguration</string>
+	        <string>/Library/Preferences/SystemConfiguration/com.apple.airport.preferences.plist</string>
+		<string>/var/run/resolv.conf</string>
 	</array>
 </dict>
 </plist>
 --end template--
 
-5) Create ~/.networkwatcher configuration file. This file should contain
+3) Create ~/.networkwatcher configuration file. This file should contain
 one or more SSIDs in brackets. Each SSID should be followed by one or more
 of the following statements:
 
+  location=location name
+       Set the network location.
+
   printer=name of printer
        This sets the default printer when the system is connected to
-       the given SSID.
+       the given SSID. Printer names can be found in
+       /etc/cups/printers.conf
 
   cmd=command to pass to shell
        This executes the given command when the system is connected to
@@ -58,9 +64,11 @@ Here is an example .networkwatcher configuration:
 
 [NCSA]
 printer=bw2010pub.ncsa.uiuc.edu
+location=Work
 
 [Home]
 printer=PSC 1600 series
+location=Home
 
 4) Load the networkwatch.plist configuration into launchd using the
 following command. This only needs to be done once.
@@ -70,10 +78,26 @@ launchctl load ~/Library/LaunchAgents/networkwatcher.plist
 5) That's it. Everytime you change your wireless network, networkwatcher
 should be run by launchd. It will log it's actions to
 /tmp/networkwatcher.log so you can keep track of what it is doing.
-
-Author: Von Welch, vwelch@ncsa.uiuc.edu
-$Id$
 """
+
+__author__ = "Von Welch <vwelch@ncsa.uiuc.edu>"
+__date__ = "$Date$"
+__version__ = "$Revision$"
+
+######################################################################
+#
+# Configuration
+#
+
+binaries = {
+    "airport" : "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport",
+    "ifconfig" : "ifconfig",
+    "lpoptions" : "lpoptions",
+    "scselect" : "scselect"
+    }
+
+ethernetIF = "en0"
+airportIF = "en1"
 
 ######################################################################
 
@@ -87,11 +111,10 @@ bssid    Current Base Station ID
 
     networkParams = {}
 
-    # Path to airport binary
-    airportCmd="/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport"
+    airportCmd = "%s -I " % binaries["airport"]
 
     debug("Running %s" % airportCmd)
-    pipe = Popen("%s -I" % airportCmd, shell=True, stdout=PIPE).stdout
+    pipe = Popen(airportCmd, shell=True, stdout=PIPE).stdout
 
     while True:
 	line = pipe.readline()
@@ -104,6 +127,29 @@ bssid    Current Base Station ID
 	if components[0] == "BSSID:":
 	    networkParams["bssid"] = components[1]
 	    continue
+
+    pipe.close()
+
+    # Query interface, which one depends on wether we're using the airport
+    # or not
+    if networkParams.has_key("SSID"):
+	interface = airportIF
+    else:
+	interface = ethernetIF
+    
+    ifconfigCmd = "%s %s" % (binaries["ifconfig"], interface)
+    debug("Running %s" % ifconfigCmd)
+    pipe = Popen(ifconfigCmd, shell=True, stdout=PIPE).stdout
+
+    while True:
+	line = pipe.readline()
+	if len(line) == 0:
+	    break
+	components = line.split()
+	if components[0] == "inet":
+	    networkParams["IPaddress"] = components[1]
+
+    pipe.close()
 
     return networkParams
 
@@ -227,11 +273,9 @@ if __name__ == "__main__":
 
     networkParams = getNetworkParams()
 
-    if networkParams["ssid"]:
+    if networkParams.has_key("ssid"):
 	log("SSID is %s" % networkParams["ssid"])
-    else:
-	log("No SSID found. Quitting.")
-	sys.exit(0)
+    log("IP is %s" % networkParams["IPaddress"])
 
     #
     # Find the section of the configuration file that corresponds to
@@ -239,13 +283,16 @@ if __name__ == "__main__":
     #
 
     networks = config.sections()
-	
-    if networks.count(networkParams["ssid"]):
-	section = networkParams["ssid"]
-    else:
-	log("Network %s not found. Quitting." % networkParams["ssid"])
-	sys.exit(0)
 
+    section = None
+
+    if (networkParams.has_key("ssid") and
+	networks.count(networkParams["ssid"])):
+	section = networkParams["ssid"]
+
+    if section is None:
+	log("No relevant network section found. Exiting.")
+	sys.exit(0)
 
     #
     # Parse and act-on configuration file section
@@ -270,7 +317,18 @@ if __name__ == "__main__":
 	# Need to convert a bunch of characters to underscores
 	printer = printer.replace(" ", "_")
 	printer = printer.replace(".", "_")
-	cmd = "lpoptions -d %s" % printer
+	cmd = "%s -d %s" % (binaries["lpoptions"], printer)
+	debug("Running command %s" % cmd)
+	executeCmd(cmd)
+
+    try:
+	location = config.get(section, "location")
+    except:
+	# No location specified
+	pass
+    else:
+	log("Setting location to %s" % location)
+	cmd = "%s %s" % (binaries["scselect"], location)
 	debug("Running command %s" % cmd)
 	executeCmd(cmd)
 
