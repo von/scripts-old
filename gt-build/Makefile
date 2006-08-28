@@ -61,7 +61,7 @@ $(UNPACKED_FLAG):
 configure: unpacked $(CONFIGURE_FLAG)
 
 $(CONFIGURE_FLAG):
-	($(SET_GL) && cd $(INSTALLER_DIR) && configure --prefix=$(GLOBUS_LOCATION) && $(TOUCH) $(CONFIGURE_FLAG)) | $(TEE)
+	($(SET_GL) && cd $(INSTALLER_DIR) && ./configure --prefix=$(GLOBUS_LOCATION) && $(TOUCH) $(CONFIGURE_FLAG)) | $(TEE)
 
 build: configure $(BUILD_FLAG)
 
