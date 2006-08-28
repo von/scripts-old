@@ -20,7 +20,7 @@ from optparse import OptionParser
 email_config = {}
 email_config['server'] = "mail.ncsa.uiuc.edu"
 email_config['from'] = "Von Welch <vwelch@ncsa.uiuc.edu>"
-email_config['subject'] = "Research Programmer position at NCSA"
+email_config['subject'] = "Research Engineer position"
 
 ######################################################################
 #
@@ -68,7 +68,12 @@ def EmailOut(toaddrs, subj, text, cc=None):
 """ % text
 
    try:
-      server = smtplib.SMTP(SMTPSERVER)
+       server = smtplib.SMTP(SMTPSERVER)
+   except Exception, e:
+      print "Error with server %s: %s" % (SMTPSERVER, str(e))
+      sys.exit(1)
+
+   try:
       server.sendmail(FROMADDR, toaddrs, msg)
       server.quit()
    except:
