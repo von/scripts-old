@@ -37,9 +37,35 @@ if (!defined($backup_path))
     exit(1);
 }
 
-print "Backing up to volume " . $backup_path . "\n";
-
 my $Prefix = $backup_path;
+
+######################################################################
+
+# Name of log file
+$LogFile = $Home . "/backup.log";
+
+if (-e $LogFile)
+{
+    unlink $LogFile
+}
+
+# Redirect STDOUT to tee, puting it both to the screen and the log file
+if (!open(STDOUT, "| /usr/bin/tee -a \"$LogFile\""))
+{
+    die "Could not direct STDOUT: $!";
+}
+
+if (!open(STDERR, ">&STDOUT"))
+{
+    die "Could not direct STDERR: $!";
+}
+
+######################################################################
+
+$date_string = localtime();
+print "Backup date: " . $date_string . "\n";
+
+print "Backing up to volume " . $backup_path . "\n";
 
 ######################################################################
 #
@@ -61,6 +87,8 @@ push(@BackupDirs, $Home . "/mail/");
 push(@BackupDirs, $Home . "/scripts/");
 push(@BackupDirs, $Home . "/.globus/");
 push(@BackupDirs, $Home . "/develop/scripts/");
+
+print "Backing up: " . join(' ', @BackupDirs) . "\n";
 
 ######################################################################
 #
@@ -85,24 +113,29 @@ push(@ExcludeFiles, $Home . "/mail/spam/*");
 push(@ExcludeFiles, $Home . "/mail/procmail-logs/*");
 push(@ExcludeFiles, $Home . "/Documents/Microsoft User Data/*");
 push(@ExcludeFiles, $Home . "/Library/Mail/POP-vwelch@localhost:11110/Junk.mbox/*");
+push(@ExcludeFiles, $Home . "/Library/Mail/Mailboxes/ncsa-security-reports.mbox/*");
+push(@ExcludeFiles, $Home . "/Library/Mail/POP-vwelch@localhost:11110/Deleted Messages.mbox/*");
+push(@ExcludeFiles, $Home . "/Library/Mail/POP-vwelch@localhost:11110/Junk.mbox/*");
 push(@ExcludeFiles, $Home . "/Library/Mail/Bundles/*");
 push(@ExcludeFiles, $Home . "/Library/Mail/Bundles (Disabled)/*");
 push(@ExcludeFiles, $Home . "/Library/Preferences/PokerAcademyPro/*");
 push(@ExcludeFiles, $Home . "/Library/Preferences/PokerAcademyProDemo/*");
 
-my $ExcludeFile = $Prefix . "/backup-excludes"
+my $ExcludeFile = $Prefix . "/backup-excludes";
 
 if (!open(EXCLUDES, ">$ExcludeFile"))
 {
     die "Could not open $ExcludeFile: $!";
 }
 
-forach my $exclude (@ExcludeFiles)
+foreach my $exclude (@ExcludeFiles)
 {
     print EXCLUDES $exclude . "\n";
 }
 
 close(EXCLUDES);
+
+print "Excluding: " . join(" ", @ExcludeFiles) . "\n";
 
 ######################################################################
 
@@ -110,25 +143,7 @@ close(EXCLUDES);
 $TarFile = $Prefix . "/backup.tar";
 $OldTarFile = $Prefix . "/backup-old.tar";
 
-# Name of log file
-$LogFile = $Prefix . "/backup.log";
-
-if (-e $LogFile)
-{
-    unlink $LogFile
-}
-
-
-# Redirect STDOUT to tee, puting it both to the screen and the log file
-if (!open(STDOUT, "|tee -a \"$LogFile\""))
-{
-    die "Could not direct STDOUT: $!";
-}
-
-if (!open(STDERR, ">&STDOUT"))
-{
-    die "Could not direct STDERR: $!";
-}
+print "Backup file: $TarFile\n";
 
 ######################################################################
 #
@@ -163,10 +178,6 @@ foreach my $BackupDir (@BackupDirs)
 {
   push(@ARG, $BackupDir);
 }
-
-
-$date_string = localtime();
-print "Backup date: " . $date_string . "\n";
 
 print join(' ', @ARG) . "\n";
 
