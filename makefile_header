@@ -9,8 +9,8 @@ INSTALL_DIR=$(HOME)/scripts
 ######################################################################
 
 INSTALL=install
-INSTALL_EXEC=$(INSTALL) -m 555 -p
-INSTALL_FILE=$(INSTALL) -m 444 -p
+INSTALL_EXEC=$(INSTALL) -m 755
+INSTALL_FILE=$(INSTALL) -m 644
 
 MKDIR=mkdir -p
 
