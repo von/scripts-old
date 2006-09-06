@@ -18,6 +18,8 @@ exit_on_error=1
 run_gram_tests=1
 run_gridftp_tests=1
 run_mds_tests=1
+run_wsgram_tests=1
+run_gridshib_tests=1
 
 ######################################################################
 #
@@ -31,9 +33,11 @@ Usage: $0 [<options>] <target host>
 Options are:
   -e      Don't exit on error.
   -F      Skip GridFTP tests
-  -G      Skip GRAM tests
+  -G      Skip pre-WS GRAM tests
   -h      Print this help and exit
   -M      Skip MDS tests
+  -S      Skip GridShib tests
+  -W      Skip WS-GRAM tests
   -x      Echo commands.
 
 EOF
@@ -49,9 +53,11 @@ globus_job_run="globus-job-run"
 globus_job_submit="globus-job-submit"
 globus_job_status="globus-job-status"
 globus_job_get_output="globus-job-get-output"
+globusrun_ws="globusrun-ws"
 globus_url_copy="globus-url-copy"
 grid_info_search="grid-info-search"
 grid_proxy_info="grid-proxy-info"
+shibecho="shibecho"
 
 diff="diff"
 rm="rm"
@@ -70,7 +76,7 @@ echo "$0 $Id$ starting"
 # Parse commandline
 #
 
-while getopts eFGhMx arg
+while getopts eFGhMSWx arg
 do
   case $arg in
   e)
@@ -92,6 +98,14 @@ do
   M)
     echo "Skipping MDS tests."
     run_mds_tests=0
+    ;;
+  S)
+    echo "Skipping GridShib tests."
+    run_gridshib_tests=0
+    ;;
+  W)
+    echo "Skipping WS-GRAM tests."
+    run_wsgram_tests=0
     ;;
   x)
     echo "Will echo commands."
@@ -148,10 +162,10 @@ fi
 
 ######################################################################
 #
-# GRAM tests
+# pre-WS GRAM tests
 
 if [ $run_gram_tests -eq 1 ]; then
-  echo "Running GRAM tests:"
+  echo "Running pre-WS GRAM tests:"
 
   echo "Globusrun authenticate only test..."
   $globusrun -a -r $target
@@ -176,6 +190,32 @@ if [ $run_gram_tests -eq 1 ]; then
   fi
   
   echo "GRAM tests complete."
+fi
+
+######################################################################
+#
+# WSGRAM tests
+#
+
+if [ $run_wsgram_tests -eq 1 ]; then
+  echo "Running WS-GRAM tests:"
+
+  # XXX this command not running output
+  echo "Globusrun-ws simple /bin/date submit..."
+  $globusrun_ws -submit -F https://${target}:8443/wsrf/services/ManagedJobFactoryService -c /bin/date -s
+fi
+
+######################################################################
+#
+# GridShib tests
+#
+
+if [ $run_gridshib_tests -eq 1 ]; then
+  echo "Running GridShib tests:"
+
+  echo "Running shibecho test..."
+
+  $shibecho -s https://${target}:8443/wsrf/services/ShibEchoService
 fi
 
 ######################################################################
