@@ -1,30 +1,40 @@
+######################################################################
+#
+# Makefile to download and build the Globus Tookit.
+#
+# $Id$
+#
+######################################################################
+#
+# Lines begining with "#!" are output by 'make help'
+#
+#! Usage: make [<options>] [<target>]
+#!
+#! Options are: 
+#!   VERSION=x.x.x           Specify version of Globus Toolkit to install.
+#!   DOWNLOAD_DIR=path       Specify path to which to download tarball
+#!                           Default is /tmp
+#!   BUILD_DIR=path          Specify path in which to build
+#!                           Default is /tmp
+#!   GLOBUS_LOCATION=path    Specify install path
+#!                           Default is /usr/local/gt-$(VERSION)
+#!   BUILD_LOG=path          Specify path of build log file.
+#!                           Default is $(GLOBUS_LOCATION)/build-log
+#!   GRIDSHIB_VERSION=x.x.x  Version of GridShib code to install.
+#!
+#! Targets are:
+#!   <default>               install
+#!   install                 Do full install
+#!   build                   Build GT
+#!   clean                   Clean up
+#!   help                    Display help
+#!   gridshib-install        Download and install gridshib (on top of GT)
+#!
+######################################################################
+
+#
+# Version of GT to download and install
 VERSION=4.0.3
-
-# Break version down into three fields
-MAJOR_VERSION=`echo $(VERSION) | cut -d . -f 1`
-MINOR_VERSION=`echo $(VERSION) | cut -d . -f 2`
-POINT_VERSION=`echo $(VERSION) | cut -d . -f 3`
-
-# Where to download to
-DOWNLOAD_DIR=/Users/vwelch/scratch/
-# Where to build
-BUILD_DIR=/tmp
-# Base name for installer package
-INSTALLER_BASE=gt$(VERSION)-all-source-installer
-# Installer tar ball
-INSTALLER=$(INSTALLER_BASE).tar.gz
-# Unpacked installer directory
-INSTALLER_DIR=$(BUILD_DIR)/$(INSTALLER_BASE)
-# URL from where we get the installer
-INSTALLER_URL=ftp://ftp.globus.org/pub/gt$(MAJOR_VERSION)/$(MAJOR_VERSION).$(MINOR_VERSION)/$(VERSION)/installers/src/$(INSTALLER)
-# Globus location
-GLOBUS_LOCATION=/usr/local/gt-$(VERSION)
-# Command to set GL environment
-SET_GL=export GLOBUS_LOCATION=$(GLOBUS_LOCATION)
-# Build log
-BUILD_LOG=$(GLOBUS_LOCATION)/build-log
-# tee command to run to save a log file
-TEE=tee -a $(BUILD_LOG)
 
 # Various binaries and commands
 DATE=date
@@ -34,13 +44,56 @@ RM=rm -f
 TAR=tar
 WGET=wget
 TOUCH=touch
+CAT=cat
+SED=sed
+GREP=grep
+TEE=tee
+DEPLOY_GAR=$(GLOBUS_LOCATION)/bin/globus-deploy-gar
 
+# Break version down into three fields
+MAJOR_VERSION=$(shell echo $(VERSION) | cut -d . -f 1)
+MINOR_VERSION=$(shell echo $(VERSION) | cut -d . -f 2)
+POINT_VERSION=$(shell echo $(VERSION) | cut -d . -f 3)
+
+#
+# Define our configuration
+#
+
+# Where to download to
+DOWNLOAD_DIR=/tmp
+# Where to build
+BUILD_DIR=/tmp
+# Install prefix
+PREFIX=/usr/local/
+# Base name for installer package
+INSTALLER_BASE=gt$(VERSION)-all-source-installer
+# Installer tar ball
+INSTALLER=$(INSTALLER_BASE).tar.gz
+# Unpacked installer directory
+INSTALLER_DIR=$(BUILD_DIR)/$(INSTALLER_BASE)
+# URL from where we get the installer
+INSTALLER_URL=ftp://ftp.globus.org/pub/gt$(MAJOR_VERSION)/$(MAJOR_VERSION).$(MINOR_VERSION)/$(VERSION)/installers/src/$(INSTALLER)
+# Globus location
+GLOBUS_LOCATION=$(PREFIX)/gt-$(VERSION)
+# Command to set GL environment
+SET_GL=export GLOBUS_LOCATION=$(GLOBUS_LOCATION)
+# Build log
+BUILD_LOG=$(GLOBUS_LOCATION)/build-log
+# tee command to run to save a log file
+LOG=2>&1 | tee -a $(BUILD_LOG)
+# Globus user which owns the installation
+GLOBUS_USER=globus
+
+#
 # Flags for keeping track of our progress
+#
 INSTALLER_FLAG=$(DOWNLOAD_DIR)/gt-build-flag-installer-$(VERSION)
 UNPACKED_FLAG=$(INSTALLER_DIR)/gt-build-flag-unpacked
 CONFIGURE_FLAG=$(INSTALLER_DIR)/gt-build-flag-configured
 BUILD_FLAG=$(INSTALLER_DIR)/gt-build-flag-built
 INSTALL_FLAG=$(GLOBUS_LOCATION)/gt-build-flag-install
+
+######################################################################
 
 default: install
 
@@ -50,28 +103,95 @@ $(GLOBUS_LOCATION):
 installer: $(INSTALLER_FLAG)
 
 $(INSTALLER_FLAG):
-	$(RM) $(INSTALLER)
+	$(RM) $(DOWNLOAD_DIR)/$(INSTALLER)
 	(cd $(DOWNLOAD_DIR) && $(WGET) $(INSTALLER_URL) && $(TOUCH) $(INSTALLER_FLAG))
 
-unpacked: installer $(UNPACKED_FLAG)
+unpacked: $(UNPACKED_FLAG)
 
-$(UNPACKED_FLAG):
+$(UNPACKED_FLAG): $(INSTALLER_FLAG)
 	(cd $(BUILD_DIR) && $(TAR) xvfz $(DOWNLOAD_DIR)/$(INSTALLER) && $(TOUCH) $(UNPACKED_FLAG))
 
-configure: unpacked $(CONFIGURE_FLAG)
+configure: $(CONFIGURE_FLAG)
 
-$(CONFIGURE_FLAG):
-	($(SET_GL) && cd $(INSTALLER_DIR) && ./configure --prefix=$(GLOBUS_LOCATION) && $(TOUCH) $(CONFIGURE_FLAG)) | $(TEE)
+$(CONFIGURE_FLAG): $(UNPACKED_FLAG)
+	($(SET_GL) && cd $(INSTALLER_DIR) && ./configure --prefix=$(GLOBUS_LOCATION) && $(TOUCH) $(CONFIGURE_FLAG)) $(LOG)
 
-build: configure $(BUILD_FLAG)
+build: $(BUILD_FLAG)
 
-$(BUILD_FLAG):
-	($(SET_GL) && cd $(INSTALLER_DIR) && $(MAKE) && $(TOUCH) $(BUILD_FLAG)) | $(TEE)
+$(BUILD_FLAG): $(CONFIGURE_FLAG)
+	($(SET_GL) && cd $(INSTALLER_DIR) && $(MAKE) && $(TOUCH) $(BUILD_FLAG)) $(LOG)
 
-install: $(INSTALL_FLAG)
+# 'make install' forces a complete rebuild
+install: $(BUILD_FLAG) $(GLOBUS_LOCATION) $(INSTALL_FLAG)
 
-$(INSTALL_FLAG): $(GLOBUS_LOCATION) build
-	($(SET_GL) && cd $(INSTALLER_DIR) && $(MAKE) install && $(TOUCH) $(INSTALL_FLAG)) | $(TEE)
+# gt-installed doesn't force a rebuild if $(INSTALL_FLAG) exists
+gt-installed: $(INSTALL_FLAG)
+
+$(INSTALL_FLAG):
+	($(SET_GL) && cd $(INSTALLER_DIR) && $(MAKE) install && $(TOUCH) $(INSTALL_FLAG)) $(LOG)
 
 clean:
 	$(RM) -rf $(INSTALL_DIR)
+
+######################################################################
+#
+# GridShib download and install
+#
+
+# Version of GridShib for Shib to install
+GRIDSHIB_VERSION=0.4.1
+# Version string with underscores instead of periods
+GRIDSHIB_VERSION_INT=$(shell echo $(GRIDSHIB_VERSION) | sed -e "s/\./_/g")
+# Installer tar ball
+GS_INSTALLER=gridshib-gt-bin-$(GRIDSHIB_VERSION_INT).tar.gz
+# Unpacked installer tarball
+GS_INSTALLER_DIR=$(BUILD_DIR)/gridshib-gt-bin-$(GRIDSHIB_VERSION)
+# URL for the installer
+GS_INSTALLER_URL=http://gridshib.globus.org/downloads/$(GS_INSTALLER)
+# tee command to run to save to gridshib log file
+GS_LOG=2>&1 | tee -a $(GLOBUS_LOCATION)/gridshib-deploy-log
+
+#
+# Flags for keeping track of our progress
+#
+GS_INSTALLER_FLAG=$(DOWNLOAD_DIR)/gt-build-flag-gs-installer-$(GRIDSHIB_VERSION)
+GS_UNPACKED_FLAG=$(GS_INSTALLER_DIR)/gt-build-flag-gs-unpacked
+GS_INSTALL_FLAG=$(GLOBUS_LOCATION)/gt-build-flag-gs-installed-$(GRIDSHIB_VERSION)
+
+######################################################################
+
+gridshib-install: gs-install
+
+gs-installer: $(GS_INSTALLER_FLAG)
+
+$(GS_INSTALLER_FLAG):
+	$(RM) $(DOWNLOAD_DIR)/$(GS_INSTALLER)
+	(cd $(DOWNLOAD_DIR) && $(WGET) $(GS_INSTALLER_URL) && $(TOUCH) $(GS_INSTALLER_FLAG))
+
+gs-unpack: $(GS_UNPACKED_FLAG)
+
+$(GS_UNPACKED_FLAG): $(GS_INSTALLER_FLAG)
+	(cd $(BUILD_DIR) && $(TAR) xvfz $(DOWNLOAD_DIR)/$(GS_INSTALLER) && $(TOUCH) $(GS_UNPACKED_FLAG))
+
+# gs-install forces a rebuild
+gs-install: gt-installed $(GS_UNPACKED_FLAG) $(GS_INSTALL_FLAG)
+
+# gs-installed doesn't force a rebuld if $(GS_INSTALL_FLAG) exists
+gs-installed: $(GS_INSTALL_FLAG)
+
+$(GS_INSTALL_FLAG):
+	($(SET_GL) && cd $(GLOBUS_LOCATION) && \
+	$(DEPLOY_GAR) $(GS_INSTALLER_DIR)/gridshib-gt-schemas-$(GRIDSHIB_VERSION_INT).gar && \
+	$(DEPLOY_GAR) $(GS_INSTALLER_DIR)/gridshib-gt-stubs-$(GRIDSHIB_VERSION_INT).gar && \
+	$(DEPLOY_GAR) $(GS_INSTALLER_DIR)/gridshib-gt-$(GRIDSHIB_VERSION_INT).gar && \
+	$(DEPLOY_GAR) $(GS_INSTALLER_DIR)/gridshib-gt-echo-$(GRIDSHIB_VERSION_INT).gar && \
+	$(TOUCH) $(GS_INSTALL_FLAG)) $(GS_LOG)
+
+######################################################################
+#
+# Output lines begining with "##" as help
+#
+
+help:
+	@$(CAT) Makefile | $(GREP) "^#!" | $(SED) -e "s/^#!//g"
+
