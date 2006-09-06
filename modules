@@ -14,7 +14,7 @@ cvs-tools:	cvs-clean-for-import.pl \
 		cvs-make-release.pl \
 		cvs-move.pl
 
-grid-proxy:	grid-proxy.sh
+globus:	grid-proxy.sh
 
 logwatch: logwatch.pl
 
