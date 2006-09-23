@@ -48,6 +48,7 @@ CAT=cat
 SED=sed
 GREP=grep
 TEE=tee
+ANT=ant
 DEPLOY_GAR=$(GLOBUS_LOCATION)/bin/globus-deploy-gar
 
 # Break version down into three fields
@@ -95,7 +96,7 @@ INSTALL_FLAG=$(GLOBUS_LOCATION)/gt-build-flag-install
 
 ######################################################################
 
-default: install
+default: gt-installed
 
 $(GLOBUS_LOCATION):
 	$(MKDIR) $(GLOBUS_LOCATION)
@@ -189,9 +190,31 @@ $(GS_INSTALL_FLAG):
 
 ######################################################################
 #
-# Output lines begining with "##" as help
+# Patches
+#
+
+# EGD patch
+EGD_PATCH_URL=ftp://ftp.ncsa.uiuc.edu/aces/gt-patches/egd-update.xml
+EGD_PATCH_FLAG = $(GLOBUS_LOCATION)/gt-build-glag-egd-patch
+
+patches: egd-update-patch
+
+egd-update-patch: $(EGD_PATCH_FLAG) gt-installed
+
+$(EGD_PATCH_FLAG):
+	@echo Installing EGD patch
+	(cd $(GLOBUS_LOCATION) && $(WGET) $(EGD_PATCH_URL) && $(ANT) -f egd-update.xml -Ddir=$(GLOBUS_LOCATION)/bin && $(TOUCH) $(EGD_PATCH_FLAG)) $(LOG)
+
+######################################################################
+#
+# Output lines begining with "#!" as help
 #
 
 help:
 	@$(CAT) Makefile | $(GREP) "^#!" | $(SED) -e "s/^#!//g"
 
+
+
+### Local Variables: ***
+### mode:makefile ***
+### End: ***
