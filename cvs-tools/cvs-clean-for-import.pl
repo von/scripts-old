@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/env perl -w
 ######################################################################
 #
 # cvs-clean-for-import
