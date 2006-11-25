@@ -202,7 +202,7 @@ if [ $run_wsgram_tests -eq 1 ]; then
 
   # XXX this command not running output
   echo "Globusrun-ws simple /bin/date submit..."
-  $globusrun_ws -submit -F https://${target}:8443/wsrf/services/ManagedJobFactoryService -c /bin/date -s
+  $globusrun_ws -submit -F https://${target}:8443/wsrf/services/ManagedJobFactoryService -s -c /bin/date
 fi
 
 ######################################################################
