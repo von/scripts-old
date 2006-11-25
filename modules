@@ -53,8 +53,7 @@ utils:		backup.pl \
 		parse_bookmarks.pl \
 		treegrep.pl \
 		unix2dos.pl \
-		unix2mac.pl \
-		update-subdirs.sh
+		unix2mac.pl 
 
 xterminal: xterminal.pl
 
