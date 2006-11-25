@@ -290,38 +290,42 @@ class Tunnel(Thread):
 # NCSA Wireless portal login
 #
 
-def do_ncsa_wireless_login(url, username, passwd):
+class NCSAWirelessPortal:
 
     import httplib
     import urllib
 
-    params = urllib.urlencode({
-	    # These are the old values (pre-May '06)
-	    'login' : username,
-	    'passwd' : passwd,
-	    'go' : "Login",
-	    # These are the new values (post-May '06)
-	    'auth_user' : username,
-	    'auth_pass' : passwd,
-	    'redirurl' : "http://www.google.com/",
-	    'accept' : "Continue"
-	    })
+    def __init__(url):
+	self.url = url
 
-    try:
-	response = urllib.urlopen(url, params)
-    except IOError, e:
-	print "Could not connect to server (%s): %s" % (url, e)
-	return 0
+    def login(username, passwd):
+	params = urllib.urlencode({
+		# These are the old values (pre-May '06)
+		'login' : username,
+		'passwd' : passwd,
+		'go' : "Login",
+		# These are the new values (post-May '06)
+		'auth_user' : username,
+		'auth_pass' : passwd,
+		'redirurl' : "http://www.google.com/",
+		'accept' : "Continue"
+		})
+
+	try:
+	    response = urllib.urlopen(self.url, params)
+	except IOError, e:
+	    print "Could not connect to server (%s): %s" % (url, e)
+	    return 0
     
-    data = response.read()
+	data = response.read()
 
-    # Try and figure out if login failed by scraping html returned
-    # We should have been redirected to google, so look for googe
-    if data.find("google") == -1:
-	print "Login failed."
-	return 0
-    print "Success."
-    return 1
+	# Try and figure out if login failed by scraping html returned
+	# We should have been redirected to google, so look for googe
+	if data.find("google") == -1:
+	    print "Login failed."
+	    return 0
+	print "Success."
+	return 1
 
 ######################################################################
 #
