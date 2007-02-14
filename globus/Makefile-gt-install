@@ -128,7 +128,7 @@ install: $(BUILD_FLAG) $(GLOBUS_LOCATION) $(INSTALL_FLAG)
 # gt-installed doesn't force a rebuild if $(INSTALL_FLAG) exists
 gt-installed: $(INSTALL_FLAG)
 
-$(INSTALL_FLAG):
+$(INSTALL_FLAG): $(BUILD_FLAG)
 	($(SET_GL) && cd $(INSTALLER_DIR) && $(MAKE) install && $(TOUCH) $(INSTALL_FLAG)) $(LOG)
 
 clean:
