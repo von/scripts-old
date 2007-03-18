@@ -200,7 +200,7 @@ fi
 if [ $run_wsgram_tests -eq 1 ]; then
   echo "Running WS-GRAM tests:"
 
-  # XXX this command not running output
+  # XXX this command not returning output
   echo "Globusrun-ws simple /bin/date submit..."
   $globusrun_ws -submit -F https://${target}:8443/wsrf/services/ManagedJobFactoryService -s -c /bin/date
 fi
