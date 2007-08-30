@@ -47,10 +47,12 @@ def readAppleMailMsg(stream):
     table = string.maketrans("\r", "\n")
 
     # Convienence function to read line from stream
-    getline = lambda s: s.readline().translate(table)
+    # Also deletes all ascii 0x00 characters which Apple Mail seems
+    # to put between each character
+    getline = lambda s: s.readline().translate(table, "\x00")
     
     # Regex to match message deliminator
-    delimRE = re.compile(r"(-\*)+")
+    delimRE = re.compile(r"^(-\*)+$")
 
     # Regex to match header fields
     headerRE = re.compile(r"(DATE|SENDER|SUBJECT|RECIPIENT): (.*)")
@@ -169,8 +171,10 @@ def sendMajordomoCmd(majordomoAddr, cmd):
 
 ######################################################################
 
-def getListPassword(majordomoAddr, listName):
+def getListPassword(listName):
     """Return the password for a list. Returns None on failure."""
+    (list, domain) = listName.split("@")
+    majordomoAddr = "majordomo@" + domain
     listPasswd = None
     try:
 	listPasswd = config.get(majordomoAddr, listName)
@@ -208,7 +212,7 @@ Returns a dictionary with the following keys:
     # subscribe mithril \
     # address@ncsa.uiuc.edu
     approveRE = re.compile(r"approve PASSWORD" + sep +
-			   "(subscribe)" + sep +
+			   "(subscribe|unsubscribe)" + sep +
 			   # list name
 			   "(\S+)" + sep +
 			   # email address
@@ -243,6 +247,19 @@ Returns a dictionary with the following keys:
 	request["addr"] = match.group(4)
 	return request
 
+    # 550 5.1.1 /etc/mail/majordomo/ncsa.uiuc.edu/lists/cyberarch-wg: line 24: Kazi Anwar <kazi@ncsa.uiuc.edu>... User unknown
+    bounceRE = re.compile(r"(\S+): line \d+:" + sep +
+			   ".*<(\S+)>\.\.\. User unknown")
+
+    match = bounceRE.search(body)
+
+    if match is not None:
+	request["cmd"] = "approve"
+	request["action"] = "unsubscribe"
+	request["list"] = match.group(1)
+	request["addr"] = match.group(2)
+	return request
+
     return None
 
 ######################################################################
@@ -254,14 +271,14 @@ def handleMsg(msg):
 
     request = parseMajordomoRequest(msg)
     if request is None:
-	# No request in found in message
+	print "No request found in message from %s" % majordomoAddr
 	return False
 
     result = False
 
     if request["cmd"] == "approve":
 	# Look up list password by majodomo address and listname
-	listPasswd = getListPassword(majordomoAddr, request["list"])
+	listPasswd = getListPassword(request["list"])
 	if listPasswd is None:
 	    print "Password for list %s at server %s not found." % (listName,
 								    majordomoAddr)
@@ -301,15 +318,44 @@ def handleMsg(msg):
 
 
 ######################################################################
+#
+# Main code
+#
 
-inStream = sys.stdin
+myname = sys.argv.pop(0)
 
-msgs = readAppleMailMsg(inStream)
+try:
+    cmd = sys.argv.pop(0)
+except:
+    cmd = "parseMsg"
 
-print "Found %d messages." % len(msgs)
+if cmd == "parseMsg":
+    inStream = sys.stdin
 
-for msg in msgs:
-    result = handleMsg(msg)
+    msgs = readAppleMailMsg(inStream)
+
+    print "Found %d messages." % len(msgs)
+
+    for msg in msgs:
+        result = handleMsg(msg)
+elif cmd == "approve":
+    try:
+        action = sys.argv.pop(0)
+        list = sys.argv.pop(0)
+        addresses = sys.argv
+    except:
+        print "Usage: %s approve <action> <list> <address> [<address>...]" % myname
+        sys.exit(1)
+    passwd = getListPassword(list)
+    if passwd is None:
+        print "Unknown list \"%s\"" % list
+    for address in addresses:
+        cmd = "approve %s %s %s" % (active, list, address)
+
+
+else:
+    print "Unknown command \"%s\"." % cmd
+    sys.exit(1)
 
 sys.exit(0)
 
