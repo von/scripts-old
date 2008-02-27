@@ -32,8 +32,12 @@ $(INSTALL_DIR):
 ######################################################################
 
 # Replace Makefile.inc with Makefile.tmp only if it is different
-Makefile.inc: Makefile.tmp
-	@if test -f $@ ; then diff $^ $@ || mv $^ $@ ; else mv $& $@ ; fi
+update: Makefile.tmp
+	@if test -f Makefile.inc ; then \
+		diff $^ Makefile.inc > /dev/null || mv $^ Makefile.inc ; \
+	else \
+		mv $& Makefile.inc ;\
+	fi
 	@rm -f $^
 
 Makefile.tmp:
@@ -46,10 +50,10 @@ Makefile.tmp:
 			echo "" ;\
 			echo "install :: $${basename}-install" ;\
 			echo "" ;\
-			echo "$${basename}-install: $${target}" ;\
+			echo "$${basename}-install: $${target} install_dir" ;\
 			echo "" ;\
-			echo "$${target}: install_dir" ;\
-			echo "	\$$(INSTALL_EXEC) $${script} \$$@" ;\
+			echo "$${target}: $${script}" ;\
+			echo "	\$$(INSTALL_EXEC) \$$^ \$$@" ;\
 			echo "" ;\
 		done ;\
 	done > $@
