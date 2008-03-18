@@ -109,16 +109,24 @@ class Tunnel(Thread):
     # Are we in the process of quiting?
     quiting = False
 
+    # Are we in the process of reconnecting?
+    reconnecting = False
+
     debug = False
 
-    def __init__(self, name, target, auth="ssh-agent", debug=False):
+    def __init__(self, name, target,
+		 auth="ssh-agent",
+		 debug=False,
+		 ping_target=None
+		 ):
 	"""name is nice name of target
 	target is the hostname to pass to ssh"""
-	Thread.__init__(self, name=name)
+        Thread.__init__(self, name=name)
 	self.name = name
 	self.target = target
 	self.auth = auth
 	self.debug = debug
+	self.ping_target = ping_target
 	if auth == "ssh-agent":
 	    self.check_creds = ssh_agent_check_creds
 	    self.get_creds = ssh_agent_get_creds
@@ -127,7 +135,7 @@ class Tunnel(Thread):
 	    self.get_creds = kerberos_get_creds
 	elif auth == "none":
 	    self.check_creds = none_check_creds
-	    self.get_creds = none_check_for_creds
+	    self.get_creds = none_get_creds
 	else:
 	    self.message("Unknown authentication method \"%s\"" % auth)
 	    self.check_creds = none_check_creds
@@ -168,25 +176,33 @@ class Tunnel(Thread):
 		self.state = self.UNCONNECTED
 	    self.releaseLock()
 
-    def connect(self):
+    def connect(self, force=False):
+	"""Connect to server. If force is true, ignore wait period since last attempt."""
+	self.debugMsg("connect() called (force = %d)" % force)
 	if self.state != self.UNCONNECTED:
 	    # Already connected (or in progress)
+	    self.debugMsg("Attempt to connect tunnel but state is %d" %
+			  self.state)
 	    return self.pid
-	if self.last_attempt != None:
-	    if time.time() - self.last_attempt < self.backoff:
-		# No enough time elapses since last attempt
-		# Try again later
+	# XXX force is not working here
+	if not force:
+	    if self.last_attempt != None:
+		if time.time() - self.last_attempt < self.backoff:
+		    # No enough time elapses since last attempt
+		    # Try again later
+		    self.debugMsg("Deferring connection - not enought time ellapsed since last attempt")
+		    return None
+	if self.ping_target != None:
+	    # Do we have network connectivity?
+	    if host_reachable(self.ping_target) == False:
+		self.debugMsg("No network connectivity to %s" % self.target)
 		return None
-	# Do we have network connectivity?
-	# XXX target may be a name from ssh config and not a real hostname
-	#if check_network(self.target) == False:
-	#    self.debugMsg("No network connectivity to %s" % self.target)
-	#    return None
 	self.acquireLock()
 	self.state = self.CONNECTING
 	# Make sure we have credentials to connect
         if self.check_creds() is False:
 	    self.get_creds()
+	self.debugMsg("Launching ssh")
 	self.pid = os.spawnlp(os.P_NOWAIT,
 			      self.ssh_program, self.ssh_program,
 			      # No stdin
@@ -202,9 +218,20 @@ class Tunnel(Thread):
 	self.releaseLock()
 	return self.pid
 
+    def forceConnect(self):
+	return self.connect(force=True)
+
     def reconnect(self):
-	self.close()
-	self.connect()
+	if self.connected():
+	    self.close(reconnect=True)
+	else:
+	    self.forceConnect()
+
+    def connected(self):
+	return (self.state == self.CONNECTED)
+
+    def unconnected(self):
+	return (self.state == self.UNCONNECTED)
 
     def sigchild(self, status):
 	"""Called by signal handler when ssh process dies."""
@@ -221,12 +248,19 @@ class Tunnel(Thread):
 	self.exitStatus = status
 	self.pid = None
 	self.state = self.UNCONNECTED
+	if self.reconnecting:
+	    self.debugMsg("Reconnecting");
+	    self.connect(force=True)
+	    self.reconnecting = False
 	self.releaseLock()
 
-    def close(self):
+    def close(self, reconnect=False):
 	self.acquireLock()
 	if self.state == self.CONNECTED:
-	    self.message("Disconnecting")
+	    if reconnect:
+		self.message("Reconnecting")
+	    else:
+		self.message("Disconnecting")
 	    try:
 		os.kill(self.pid, signal.SIGKILL)
 	    except:
@@ -236,6 +270,7 @@ class Tunnel(Thread):
 		# Allow for immediate reconnection after an explicit close
 		self.last_attempt = None
 		# Let SIGCHLD handler do the cleanup and call disconnected()
+		self.reconnecting = reconnect
 	self.releaseLock()
 
     def quit(self):
@@ -287,18 +322,44 @@ class Tunnel(Thread):
 
 ######################################################################
 #
+# SigChildHandler class
+#
+# Create a thread to handle a sigchild
+
+class SigChildHandler(Thread):
+    """Create a thread to handle a sigchild. We want this handling to
+happen in a separate thread so that it blocks on the RLock for the
+Tunnel opject."""
+    
+    def __init__(self, pid, status):
+	Thread.__init__(self)
+	self.pid = pid
+	self.status = status
+    
+    def run(self):
+	# Map pid to tunnel
+	tunnel = None
+	for tunnel in tunnels:
+	    if tunnel.pid == self.pid:
+		break
+	if tunnel == None:
+	    # No tunnel we know of, ignore
+	    output("Caught unknown child (pid = %d)" % self.pid)
+	    return
+	tunnel.sigchild(self.status)
+
+######################################################################
+#
 # NCSA Wireless portal login
 #
 
 class NCSAWirelessPortal:
-
-    import httplib
-    import urllib
-
-    def __init__(url):
+    def __init__(self, url):
 	self.url = url
 
-    def login(username, passwd):
+    def login(self, username, passwd):
+	import httplib
+	import urllib
 	params = urllib.urlencode({
 		# These are the old values (pre-May '06)
 		'login' : username,
@@ -314,18 +375,25 @@ class NCSAWirelessPortal:
 	try:
 	    response = urllib.urlopen(self.url, params)
 	except IOError, e:
-	    print "Could not connect to server (%s): %s" % (url, e)
+	    output("Could not connect to server (%s): %s" % (self.url, e))
 	    return 0
     
 	data = response.read()
 
 	# Try and figure out if login failed by scraping html returned
-	# We should have been redirected to google, so look for googe
+	# We should have been redirected to google, so look for google
 	if data.find("google") == -1:
-	    print "Login failed."
+	    output("Login failed.")
 	    return 0
-	print "Success."
+	output("Success.")
+        # Go ahead and refresh our kerberos ticket
+        #kerberos_get_creds(username, passwd)
 	return 1
+
+    def reachable(self):
+        import urlparse
+        parsedURL = urlparse.urlparse(self.url)
+        return host_reachable(parsedURL.hostname)
 
 ######################################################################
 #
@@ -336,12 +404,12 @@ def run_cmd(cmd, quiet=False):
     if quiet and not debug:
 	cmd = cmd + " >& /dev/null"
     else:
-	print "Running %s..." % cmd
+	output("Running %s..." % cmd)
     # XXX Add timeout
     status = os.WEXITSTATUS(os.system(cmd))
     if not quiet:
-	print "%s done." % cmd
-    if debug: print "Command returned %d" % status
+	output("%s done." % cmd)
+    if debug: output("Command returned %d" % status)
     return status
 
 def sleep(seconds):
@@ -360,16 +428,19 @@ def getusername():
 
 def getpassword():
     import getpass
-    # Turn off any signal handlers so that system call completes
-    # XXX If a tunnel dies while we're reading, that event is lost
-    disable_signals()
     password = getpass.getpass()
-    enable_signals()
     return password
 
-def check_network(target):
+
+def host_reachable(target):
+    """Return true if target is pingable."""
     status = run_cmd("ping -c 1 %s" % target, quiet=True)
     return (status == 0)
+
+def output(msg):
+    # Append '\r' here as otherwise some interaction with signals handling
+    # and/or threads causes linefeed w/o carriage return.
+    print "%s\r" % msg
 
 ######################################################################
 #
@@ -409,6 +480,40 @@ def none_get_creds():
 # User commands
 #
 
+def dispatch():
+    """Run in a loop, getting user commands and dispatching them."""
+    
+    Getchar = Getch.Getch()
+
+    # Main loop, runs forever
+    while True:
+	try:
+	    if debug:
+		output("Waiting for command.")
+	    c = Getchar()
+	    f = functions[c]
+	except KeyError:
+	    # Unknown key entered by user, ignore
+	    if debug:
+		output("Unknown key \"%s\"" % c)
+	    pass
+	except (IOError, termios.error):
+	    # Interrupted system call, ignore
+	    if debug:
+		output("Interrupted system call.")
+	    pass
+	else:
+	    # Call function bound to key
+	    try:
+		if debug:
+		    output("Calling %s()" % f.__name__)
+		f()
+	    except SystemExit, e:
+		raise e
+	    except Exception, e:
+		output("Caught exception: %s: %s" % (repr(e), e))
+		raise e
+
 def dump():
     """Dump the state of all tunnels."""
     for tunnel in tunnels:
@@ -416,19 +521,14 @@ def dump():
 
 def reconnect():
     """Reconnect all tunnels."""
-    print "Closing all tunnels..."
+    output("Reconnecting all tunnels...")
     for tunnel in tunnels:
-	tunnel.close()
-    print "Pausing to allow tunnel shutdown..."
-    sleep(reconnect_pause)
-    print "Reconnecting all tunnels..."
-    for tunnel in tunnels:
-	tunnel.connect()
+	tunnel.reconnect()
     
 def fetchmail(host=None):
     """Run fetchmail."""
     if runFetchmail is False:
-	print "Fetchmail functionality disabled in configuration."
+	output("Fetchmail functionality disabled in configuration.")
 	return
     cmd = "fetchmail"
     # Get all mail
@@ -440,18 +540,22 @@ def fetchmail(host=None):
 def reconnect_and_fetch():
     """Reconnect and run fetchmail."""
     reconnect()
-    print "Pausing to allow tunnel setup..."
+    output("Pausing to allow tunnel setup...")
     sleep(reconnect_pause)
     fetchmail()
 
 def ncsa_wireless_login(username = None, password = None):
     """Login to NCSA wirless portal"""
+    portal = NCSAWirelessPortal(ncsaWirelessLoginUrl);
+    if not portal.reachable():
+        output("NCSA Wireless portal not reachable.")
+        return False
     if username is None:
 	username = getusername()
-    print "Logging into NCSA wireless portal as %s" % username
+    output("Logging into NCSA wireless portal as %s" % username)
     if password is None:
 	password = getpassword()
-    do_ncsa_wireless_login(ncsaWirelessLoginUrl, username, password)
+    portal.login(username, password)
 
 def ps():
     cmd = "ps -auxwww | grep ssh"
@@ -459,28 +563,28 @@ def ps():
 
 def quit():
     """Quit."""
-    print "Quiting..."
+    output("Quiting...")
     # Manually close all of our tunnels, as garbage collection seems
     # to miss one (the last one?)
     for tunnel in tunnels:
 	tunnel.quit()
+    quitEvent.set()
     sys.exit(0)
 
 def ncsa_login():
     """Logon to NCSA wireless portal and get Kerberos credential."""
     import getpass
-    print "Using %s for username." % username
+    output("Using %s for username." % username)
     username = getpass.getuser()
     if password is None:
 	password = getpass.getpass()
     ncsa_wireless_login(username, password)
-    kerberos_get_creds(username, password)
  
 def help():
     """Display help."""
-    print "Help:"
+    output("Help:")
     for key, func in functions.iteritems():
-	print "[%s] %s" % (key, func.__doc__)
+	output("[%s] %s" % (key, func.__doc__))
 
 functions = {
     'D' : dump,
@@ -499,6 +603,8 @@ functions = {
 #
 
 def handle_sigchild(signum, frame):
+    if debug:
+        output("handle_sigchild() called")
     while True:
 	try:
 	    (pid, status) = os.waitpid(-1, # any child
@@ -511,25 +617,22 @@ def handle_sigchild(signum, frame):
 	    # No child waiting, we're done
 	    break
 
-	if debug: print "Caught sigchild for %d" % pid
-
-	# Map pid to tunnel
-	tunnel = None
-	for tunnel in tunnels:
-	    if tunnel.pid == pid:
-		break
-	if tunnel == None:
-	    # No tunnel we know of, ignore
-	    print "Caught unknown child (pid = %d)" % pid
-	    continue
-	tunnel.sigchild(status)
+	# Fire off a thread to handle signal
+	if debug: output("Caught sigchild for %d (status %d)" %
+			 (pid, status))
+	handler = SigChildHandler(pid, status)
+	handler.start()
+    if debug:
+        output("handle_sigchild() done")
 
 def handle_sigint(signum, frame):
+    if debug:
+        output("handle_sigint() called")
     quit()
 
 def disable_signals():
     """Block signals for a critical piece of code."""
-    if debug: print "Disabling signals."
+    if debug: output("Disabling signals.")
     for signum in range(1, signal.NSIG):
 	try:
 	    signal.signal(signum, signal.SIG_IGN)
@@ -539,7 +642,7 @@ def disable_signals():
 
 def enable_signals():
     """Enable signals."""
-    if debug: print "Enabling signals"
+    if debug: output("Enabling signals")
     signal.signal(signal.SIGCHLD, handle_sigchild)
     signal.signal(signal.SIGINT, handle_sigint)
 
@@ -555,46 +658,35 @@ tunnels = list()
 for target in targets:
     host = config.get(target, "host")
     auth = config.get(target, "auth")
-    tunnel = Tunnel(target, host, auth=auth, debug=debug)
+    try:
+	ping_host = config.get(target, "pingHost")
+    except:
+	ping_host = None
+    tunnel = Tunnel(target, host,
+		    auth=auth,
+		    debug=debug,
+		    ping_target=ping_host)
     tunnels.append(tunnel)
 
 for tunnel in tunnels:
     tunnel.start()
 
-Getchar = Getch.Getch()
+quitEvent = Event()
 
-# Main loop, runs forever
-# XXX For some reason first call to Getchar() always gets interrupted
-while True:
-    try:
-	if debug:
-	    print "Waiting for command."
-	c = Getchar()
-	f = functions[c]
-    except KeyError:
-	# Unknown key entered by user, ignore
-	if debug:
-	    print "Unknown key \"%s\"" % c
-	pass
-    except (IOError, termios.error):
-	# Interrupted system call, ignore
-	if debug:
-	    print "Interrupted system call."
-	pass
-    else:
-	# Call function bound to key
-	try:
-	    if debug:
-		print "Calling %s()" % repr(f)
-	    f()
-	except SystemExit, e:
-	    raise e
-	except Exception, e:
-	    print "Caught exception: %s: %s" % (repr(e), e)
-	    quit()
-	    raise e
+# Start dispatch thread to deal with user commands
+dispatchThread=Thread(target=dispatch)
+dispatchThread.start()
 
-# Should never get here
+# Wait for some thread to say we're done
+if debug: output("Main thread waiting for quit event.")
+# Call in a loop with a one second timeout here so that we can do
+# signal handling in between waits
+while not quitEvent.isSet():
+    quitEvent.wait(1.0)
+if debug: output("Quit event detected.")
+sys.exit(0)
+
+# End code
 
 
 

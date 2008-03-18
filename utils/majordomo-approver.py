@@ -18,22 +18,149 @@ debug = False
 
 ######################################################################
 
-import ConfigParser
+class MajordomoConfig:
 
-configFileName = os.path.expanduser("~/.majordomo-approver/config")
-try:
-    os.stat(configFileName)
-except OSError, e:
-    print "Could not read configuration file: %s" % e
-    sys.exit(1)
+    configFileName = "~/.majordomo-approver/config"
 
+    def __init__(self, listAddr):
+        configFileName = os.path.expanduser(self.configFileName)
+        try:
+            os.stat(configFileName)
+        except OSError, e:
+            raise Exception("Could not read configuration file: %s" % e)
+        import ConfigParser
+        config = ConfigParser.SafeConfigParser()
+        try:
+            config.read(configFileName)
+        except Exception, e:
+            raise Exception("Error parsing configuration file: %s" % e)
+        self.config = config
+        self.listAddr = listAddr
+        self.debug = debug
 
-config = ConfigParser.SafeConfigParser()
-try:
-    config.read(configFileName)
-except Exception, e:
-    print "Error parsing configuration file: %s" % e
-    sys.exit(1)
+    def get(self, attribute, default=None):
+        try:
+            value = self.config.get(self.getMajordomoAddr(), attribute)
+        except:
+            # Fall through and try default section
+            pass
+        else:
+            return value
+        # Failed, try default section
+        try:
+            value = self.config.get("default", attribute)
+        except:
+            value = default
+        return value
+
+    def getListPassword(self):
+        majordomoAddr = self.getMajordomoAddr()
+        password = None
+        try:
+            password = self.config.get(self.getMajordomoAddr(),
+                                       self.getListName())
+        except:
+            pass
+        if password is None:
+            try:
+                password = self.config.get(self.getMajordomoAddr(), "default")
+            except:
+                pass
+        return password
+
+    def getMajordomoAddr(self):
+        return "majordomo@" + self.getListDomain()
+
+    def getListName(self):
+        """Return the portion of the list address to the left of the '@' sign."""
+        (listName, domainName) = self.listAddr.split("@")
+        return listName
+
+    def getListDomain(self):
+        """Return the portion of the list address to the right of the '@' sign."""
+        (listName, domainName) = self.listAddr.split("@")
+        return domainName
+        
+    def getCCAddr(self):
+        return self.get("cc")
+
+    def getFromAddr(self):
+        return self.get("from")
+
+    def getSMTPServer(self):
+        return self.get("smtpServer")
+
+######################################################################
+
+class MajordomoList:
+
+    def __init__(self, listAddr):
+        self.config = MajordomoConfig(listAddr)
+        self.listAddr = listAddr
+        self.cmds = []
+        self.debug = debug
+        # Make sure we have a password for the list before proceeding
+        self.password = self.config.getListPassword()
+        if self.password is None:
+            raise Exception("Unknown list \"%s\"", self.listAddr)
+
+    def subscribe(self, addrs):
+        self.processAddresses("subscribe", addrs)
+
+    def unsubscribe(self, addrs):
+        self.processAddresses("unsubscribe", addrs)
+
+    def who(self):
+        self.approve("who")
+
+    def processAddresses(self, cmd, addrs):
+        # Allow for a single value for addrs
+        if not isinstance(addrs, list):
+            addrs = [ addrs ]
+        for addr in addrs:
+            self.approve(cmd, addr)
+
+    def approve(self, cmd, addr=None):
+        cmd = "approve %s %s %s" % (self.password,
+                                    cmd,
+                                    self.listAddr)
+        if addr is not None:
+            cmd += " " + addr
+        self.addCmd(cmd)
+
+    def addCmd(self, cmd):
+        self.cmds.append(cmd)
+
+    def execute(self):
+        import email
+        self.addCmd("end");
+        cmdStr = ""
+        for cmd in self.cmds:
+            cmdStr += cmd + "\n"
+        msg = email.message_from_string(cmdStr)
+        majordomoAddr = self.config.getMajordomoAddr()
+        cc = self.config.getCCAddr()
+        frm = self.config.getFromAddr()
+        smtpServer = self.config.getSMTPServer()
+        subject = "Majordomo commands to %s" % majordomoAddr
+        msg['To'] = majordomoAddr
+        msg['Subject'] = subject
+        msg['Cc'] = cc
+        msg['From'] = frm
+        if debug:
+            print "\nDEBUG MODE"
+            print "\tSMTP Server: %s" % smtpServer
+            print "Message:"
+            print ""
+            print msg.as_string()
+        else:
+            import smtplib
+            smtpServer = smtplib.SMTP(smtpServer)
+            smtpServer.sendmail(frm, [majordomoAddr, cc], msg.as_string())
+            smtpServer.close()
+
+        
+        
 
 ######################################################################
 #
@@ -112,82 +239,6 @@ def readAppleMailMsg(stream):
 	    msg["body"] += line.strip() + "\n"
 
     return msgs
-
-######################################################################
-
-
-def getMajordomoConfig(majordomoAddr, field):
-    """Return the given configuration field for a majordomo address. Failing that return the default value. Failing that return None."""
-    value = None
-    try:
-	value = config.get(majordomoAddr, field)
-    except:
-	pass
-
-    if value is None:
-	try:
-	    value = config.get("default", field)
-	except:
-	    pass
-
-    return value
-
-def getFromAddr(majordomoAddr):
-    """Return the from address to use for the command to the given
-majordomo address."""
-    return getMajordomoConfig(majordomoAddr, "from")
-
-def getCCAddr(majordomoAddr):
-    """Return the address to CC for the command to the given majordomo address.
-Returns None if no CC to be performed."""
-    return getMajordomoConfig(majordomoAddr, "cc")
-
-######################################################################
-
-def sendMajordomoCmd(majordomoAddr, cmd):
-    """Send cmd to majordomo at given address."""
-    import email
-    import smtplib
-
-    cmd += "\n"
-    cmd += "end\n"
-    msg = email.message_from_string(cmd)
-    msg['To'] = majordomoAddr
-    msg['Subject'] = "Majordomo commands to %s" % majordomoAddr
-    cc = getCCAddr(majordomoAddr)
-    msg['Cc'] = cc
-    frm = getFromAddr(majordomoAddr)
-    msg['From'] = frm
-
-    if debug:
-	print msg.as_string()
-    else:
-	# XXX Make SMTP host and portnumber configuration options
-	smtpServer = smtplib.SMTP("localhost:11025")
-	smtpServer.sendmail(frm, [majordomoAddr, cc], msg.as_string())
-	smtpServer.close()
-
-    return True
-
-######################################################################
-
-def getListPassword(listName):
-    """Return the password for a list. Returns None on failure."""
-    (list, domain) = listName.split("@")
-    majordomoAddr = "majordomo@" + domain
-    listPasswd = None
-    try:
-	listPasswd = config.get(majordomoAddr, listName)
-    except:
-	pass
-
-    if listPasswd is None:
-	try:
-	    listPasswd = config.get(majordomoAddr, "default")
-	except:
-	    pass
-
-    return listPasswd
 
 ######################################################################
 
@@ -319,17 +370,24 @@ def handleMsg(msg):
 
 ######################################################################
 #
-# Main code
+# Command functions
 #
 
-myname = sys.argv.pop(0)
+def help():
+    """Display help."""
+    print """
+Usage: %s <command> [<list-name> [<addresses>]]
 
-try:
-    cmd = sys.argv.pop(0)
-except:
-    cmd = "parseMsg"
+Commands are:""" % myname
+    for cmd in functionsWithNoArgs.keys():
+        print "\t%s" % cmd
+    for cmd in functionsWithListName.keys():
+        print "\t%s <list name>" % cmd
+    for cmd in functionsWithListAndAddresses.keys():
+        print "\t%s <list name> <address> [<address>...]" % cmd
 
-if cmd == "parseMsg":
+def parseEmail():
+    """Parse email from stdin and approve requests."""
     inStream = sys.stdin
 
     msgs = readAppleMailMsg(inStream)
@@ -338,23 +396,80 @@ if cmd == "parseMsg":
 
     for msg in msgs:
         result = handleMsg(msg)
-elif cmd == "approve":
+
+######################################################################
+#
+# Utility functions
+#
+
+def popAndParseListName():
+    """Pop listname from sys.argv and return MajordomoList object.
+
+    Exits on any error, printing error to stdout."""
+    import sys
     try:
-        action = sys.argv.pop(0)
-        list = sys.argv.pop(0)
-        addresses = sys.argv
+        listAddr = sys.argv.pop(0)
     except:
-        print "Usage: %s approve <action> <list> <address> [<address>...]" % myname
+        print "Usage: %s %s <list>" % (myname, cmd)
         sys.exit(1)
-    passwd = getListPassword(list)
-    if passwd is None:
-        print "Unknown list \"%s\"" % list
-    for address in addresses:
-        cmd = "approve %s %s %s" % (active, list, address)
+    
+    try:
+        list = MajordomoList(listAddr)
+    except:
+        print "Unknown list \"%s\"" % listAddr
+        sys.exit(1)
+    return list
 
+######################################################################
+#
+# Main code
+#
 
+# Functions that take no arguments
+# Value should be function to be called
+functionsWithNoArgs = {
+    "parse-email" : "parseEmail",
+    "help" : "help",
+}
+
+# Functions with just a list name as a argument
+# Value here is MajordomoList method() to invoke on list
+functionsWithListName = {
+    "who" : "who",
+}
+
+# Function with list name and set of addresses
+# Value here is MajordomoList method() to invoke on list with addresses
+# as arguments.
+functionsWithListAndAddresses = {
+    "subscribe" : "subscribe",
+    "unsubscribe" : "unsubscribe",
+}
+
+myname = sys.argv.pop(0)
+
+try:
+    cmd = sys.argv.pop(0)
+except:
+    help()
+    sys.exit(1)
+
+if functionsWithNoArgs.has_key(cmd):
+    function = functionsWithNoArgs[cmd]
+    eval("%s()" % function)
+elif functionsWithListName.has_key(cmd):
+    majordomoList = popAndParseListName()
+    method = functionsWithListName[cmd]
+    eval("majordomoList.%s()" % method)
+    majordomoList.execute()
+elif functionsWithListAndAddresses.has_key(cmd):
+    majordomoList = popAndParseListName()
+    method = functionsWithListAndAddresses[cmd]
+    addresses = sys.argv
+    eval("majordomoList.%s(%s)" % (method, addresses))
+    majordomoList.execute()
 else:
-    print "Unknown command \"%s\"." % cmd
+    print "Unknown command \"%s\". Use \"%s help\" for help." % (cmd, myname)
     sys.exit(1)
 
 sys.exit(0)
