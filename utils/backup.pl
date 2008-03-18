@@ -12,6 +12,13 @@
 
 ######################################################################
 #
+# Find our Home directory
+#
+
+$Home = $ENV{HOME} || die "HOME not defined.";
+
+######################################################################
+#
 # Find the backup volume
 
 my $backup_path = undef;
@@ -60,6 +67,8 @@ if (!open(STDERR, ">&STDOUT"))
     die "Could not direct STDERR: $!";
 }
 
+print "Writing backup log to " . $LogFile . "\n";
+
 ######################################################################
 
 $date_string = localtime();
@@ -72,9 +81,6 @@ print "Backing up to volume " . $backup_path . "\n";
 # Build list of directories to backup
 
 @BackupDirs = ();
-
-# Home directory
-$Home = $ENV{HOME} || die "HOME not defined.";
 
 push(@BackupDirs, $Home . "/Documents/");
 push(@BackupDirs, $Home . "/Library/Keychains/");
@@ -108,18 +114,22 @@ push(@ExcludeFiles, "~$*.doc");
 push(@ExcludeFiles, "*~");
 push(@ExcludeFiles, "#*#");
 
-# Directories to skip
-push(@ExcludeFiles, $Home . "/mail/spam/*");
-push(@ExcludeFiles, $Home . "/mail/procmail-logs/*");
-push(@ExcludeFiles, $Home . "/Documents/Microsoft User Data/*");
-push(@ExcludeFiles, $Home . "/Library/Mail/POP-vwelch@localhost:11110/Junk.mbox/*");
-push(@ExcludeFiles, $Home . "/Library/Mail/Mailboxes/ncsa-security-reports.mbox/*");
-push(@ExcludeFiles, $Home . "/Library/Mail/POP-vwelch@localhost:11110/Deleted Messages.mbox/*");
-push(@ExcludeFiles, $Home . "/Library/Mail/POP-vwelch@localhost:11110/Junk.mbox/*");
-push(@ExcludeFiles, $Home . "/Library/Mail/Bundles/*");
-push(@ExcludeFiles, $Home . "/Library/Mail/Bundles (Disabled)/*");
-push(@ExcludeFiles, $Home . "/Library/Preferences/PokerAcademyPro/*");
-push(@ExcludeFiles, $Home . "/Library/Preferences/PokerAcademyProDemo/*");
+# Directories to skip.
+#
+# Use single quotes (') here around strings so that '@' characters are
+# not interpreted as arrays.
+push(@ExcludeFiles, $Home . '/mail/spam/*');
+push(@ExcludeFiles, $Home . '/mail/procmail-logs/*');
+push(@ExcludeFiles, $Home . '/Documents/Microsoft User Data/*');
+push(@ExcludeFiles, $Home . '/Library/Mail/POP-vwelch@localhost:11110/Junk.mbox/*');
+push(@ExcludeFiles, $Home . '/Library/Mail/Mailboxes/ncsa-security-reports.mbox/*');
+push(@ExcludeFiles, $Home . '/Library/Mail/Mailboxes/ncsa-security-reports.mbox/Messages/*');
+push(@ExcludeFiles, $Home . '/Library/Mail/POP-vwelch@localhost:11110/Deleted Messages.mbox/*');
+push(@ExcludeFiles, $Home . '/Library/Mail/POP-vwelch@localhost:11110/Junk.mbox/*');
+push(@ExcludeFiles, $Home . '/Library/Mail/Bundles/*');
+push(@ExcludeFiles, $Home . '/Library/Mail/Bundles (Disabled)/*');
+push(@ExcludeFiles, $Home . '/Library/Preferences/PokerAcademyPro/*');
+push(@ExcludeFiles, $Home . '/Library/Preferences/PokerAcademyProDemo/*');
 
 my $ExcludeFile = $Prefix . "/backup-excludes";
 
