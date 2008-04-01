@@ -28,13 +28,14 @@ OU_NAME="CA"
 
 usage() {
 cat <<EOF
-Usage: $0 [<options>] <CA path> <CA name>
+Usage: $0 [<options>] <CA name>
 
 Options:
-  -c                   Set country of CA [default: US]
+  -c                   Set country of CA [default: ${COUNTRY_NAME}]
   -h                   Print help and exit.
-  -o <organization>    Set organization of CA [default: SomeOrg]
-  -u <orgUnit>         Set organizational unit of CA [default: CA]
+  -o <organization>    Set organization of CA [default: ${ORG_NAME}]
+  -p <pki path>        Set path for PKI files [default: ${PKI_PATH}]
+  -u <orgUnit>         Set organizational unit of CA [default: ${OU_NAME}]
 EOF
 }
 
@@ -44,6 +45,7 @@ do
   c) COUNTRY_NAME=$OPTARG ;;
   h) usage ; exit 0 ;;
   o) ORG_NAME=$OPTARG ;;
+  p) PKI_PATH=$OPTARG ;;
   u) OU_NAME=$OPTARG ;;
   ?)
     echo "Unknown option: -$ARG"
@@ -53,15 +55,6 @@ do
 done
 
 shift `expr $OPTIND - 1`
-
-if [ $# -gt 0 ]; then
-  ca_dir=$1
-  shift
-else
-  echo "Missing CA directory argument"
-  usage
-  exit 1
-fi
 
 if [ $# -gt 0 ]; then
   ca_name=$1
@@ -77,13 +70,20 @@ fi
 # Create CA directory
 #
 
+if [ ! -d $PKI_PATH ]; then
+    echo "Creating ${PKI_PATH}"
+    mkdir -p $PKI_PATH
+fi
+
+ca_dir=${PKI_PATH}/CA/${ca_name}
+
 if [ -e $ca_dir ]; then
   echo "CA directory $ca_dir already exists."
   exit 1;
 fi
 
 echo "Creating CA directory $ca_dir and contents"
-mkdir $ca_dir
+mkdir -p $ca_dir
 mkdir ${ca_dir}/certs
 touch ${ca_dir}/index.txt
 echo "01" > $ca_dir/serial
