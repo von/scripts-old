@@ -1,14 +1,51 @@
 #!/bin/sh
 ######################################################################
 #
-# Install GridShib for GT (from source)
+# Install GridShib for GT
 #
 # $Id$
 #
 ######################################################################
+#
+# Defaults
+
+version="0.5.2"
+
+######################################################################
 
 # Exit on any error
 set -e
+
+# log_cmd command arg1 arg2...
+# Run command with arguments, logging output and exiting on error
+log_cmd()
+{
+    # Explicitly check exit status since 'set -e' won't catch it
+    # because of the tee
+    $* >> $log_file 2>&1
+}
+
+# log message arg1 arg2...
+# Log message
+log()
+{
+    echo $* >> $log_file
+}
+
+# flagged_cmd flag_file command arg1 arg2...
+# If flag_file does not exist, run command.
+# On success, touch flag_file
+# On error, exist
+flagged_cmd()
+{
+    flag_file=$1; shift
+    if test -f ${flag_file} ; then
+	:
+    else
+	log_cmd $*
+	touch ${flag_file}
+    fi
+}
 
 ######################################################################
 #
@@ -22,8 +59,10 @@ Usage: $0 <options>
 
 Options:
   -b    Binary install instead of source.
+  -g path      Path to GLOBUS_LOCATION
+  -v version   Version to install (default $version)
 EOF
-args=`getopt b $*`
+args=`getopt bg:v: $*`
 if test $? != 0 ; then
     echo $usage
     exit 1
@@ -35,6 +74,16 @@ for arg ; do
 	    echo "Installing from binary."
 	    binary_install=1
 	    shift;;
+	-g)
+	    shift
+	    export GLOBUS_LOCATION=$1; shift
+	    echo "Setting GLOBUS_LOCATION=${GLOBUS_LOCATION}"
+	    ;;
+	-v)
+	    shift
+	    version=$1; shift
+	    echo "Installing version ${version}"
+	    ;;
 	--)
 	    shift; break;;
     esac
@@ -57,12 +106,22 @@ if test ! -w ${GLOBUS_LOCATION} ; then
     exit 1
 fi
 
+if test X${JAVA_HOME} = X ; then
+    echo "JAVA_HOME is not set."
+    exit 1
+fi
+
+if test X${ANT_HOME} = X ; then
+    echo "ANT_HOME is not set."
+    exit 1
+fi
+
 ######################################################################
 
-version="0.5.1"
 version_mod=`echo $version | sed -e "s/\./_/g"`
 
-log_file=${GLOBUS_LOCATION}/gridsib-gt-intall-log
+log_file=${GLOBUS_LOCATION}/gridshib-gt-install-log
+
 if test $binary_install -eq 1 ; then
     source_dir=gridshib-gt-bin-${version_mod}-GT4.0
 else
@@ -93,8 +152,19 @@ DEPLOY_GAR=${GLOBUS_LOCATION}/bin/globus-deploy-gar
 #
 # Start log file
 
-echo "Install started" >> $log_file
-date >> $log_file
+# Output log file as we go along
+tail -n 0 -f $log_file &
+log_pid=$!
+
+cleanup()
+{
+    echo Cleaning up.
+    kill $log_pid
+}
+trap cleanup EXIT
+
+log "Install started"
+log_cmd date >> $log_file
 
 ######################################################################
 #
@@ -102,46 +172,15 @@ date >> $log_file
 cd $tmp_dir
 
 if test ! -f ${tarball} ; then
-    echo "Getting tarball from $source_url" >> $log_file
-    wget $source_url || exit 1
+    log "Getting tarball from $source_url"
+    log_cmd wget -nv $source_url
 fi
 
 ######################################################################
 #
 # Unpack source tarball
 
-if test ! -f ${gridshib_unpacked_flag} ; then
-    tar xvfz ${tarball} || exit 1
-    touch $gridshib_unpacked_flag
-fi
-
-######################################################################
-#
-# Check for urn:oasis:names:tc:SAML:1.0:protocol in ns.excludes
-# See: http://bugzilla.globus.org/globus/show_bug.cgi?id=5117
-
-if test $binary_install -eq 0 ; then
-    echo "Checking for problem build-stubs.xml..."
-    if grep "urn:oasis:names:tc:SAML:1.0:protocol" ${GLOBUS_LOCATION}/share/globus_wsrf_tools/build-stubs.xml > /dev/null ; then
-	echo "Found. Patching ${GLOBUS_LOCATION}/share/globus_wsrf_tools/build-stubs.xml" | tee -a $log_file
-	cd ${GLOBUS_LOCATION}
-	cp share/globus_wsrf_tools/build-stubs.xml share/globus_wsrf_tools/build-stubs.xml.orig
-	patch -p0 <<"EOF" | tee -a $log_file
---- share/globus_wsrf_tools/build-stubs.xml     2007-03-22 21:06:36.000000000 -0500
-+++ share/globus_wsrf_tools/build-stubs.xml.patched     2007-03-22 21:19:49.000000000 -0500
-@@ -120,7 +120,7 @@
-     <property name="source.binding.dir" location="."/>
-     <property name="binding.protocol" value="http"/>
-     <property name="stubs.timeout" value="180"/>
--    <property name="ns.excludes" value="-x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-BaseFaults-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-BaseFaults-1.2-draft-01.wsdl -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ResourceLifetime-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ResourceLifetime-1.2-draft-01.wsdl -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ResourceProperties-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ResourceProperties-1.2-draft-01.wsdl -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ServiceGroup-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ServiceGroup-1.2-draft-01.wsdl -x http://docs.oasis-open.org/wsn/2004/06/wsn-WS-BaseNotification-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsn/2004/06/wsn-WS-BaseNotification-1.2-draft-01.wsdl -x http://schemas.xmlsoap.org/ws/2004/04/trust -x http://schemas.xmlsoap.org/ws/2002/12/policy -x http://schemas.xmlsoap.org/ws/2002/07/utility -x http://schemas.xmlsoap.org/ws/2004/04/sc -x http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd -x http://www.w3.org/2000/09/xmldsig# -x http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd -x urn:oasis:names:tc:SAML:1.0:protocol"/>
-+    <property name="ns.excludes" value="-x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-BaseFaults-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-BaseFaults-1.2-draft-01.wsdl -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ResourceLifetime-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ResourceLifetime-1.2-draft-01.wsdl -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ResourceProperties-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ResourceProperties-1.2-draft-01.wsdl -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ServiceGroup-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsrf/2004/06/wsrf-WS-ServiceGroup-1.2-draft-01.wsdl -x http://docs.oasis-open.org/wsn/2004/06/wsn-WS-BaseNotification-1.2-draft-01.xsd -x http://docs.oasis-open.org/wsn/2004/06/wsn-WS-BaseNotification-1.2-draft-01.wsdl -x http://schemas.xmlsoap.org/ws/2004/04/trust -x http://schemas.xmlsoap.org/ws/2002/12/policy -x http://schemas.xmlsoap.org/ws/2002/07/utility -x http://schemas.xmlsoap.org/ws/2004/04/sc -x http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd -x http://www.w3.org/2000/09/xmldsig# -x http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"/>
- 
-     <path id="fullclasspath">
-         <pathelement location="."/>
-EOF
-	cd $tmp_dir
-    fi
-fi
+flagged_cmd ${gridshib_unpacked_flag} tar xfz ${tarball}
 
 ######################################################################
 #
@@ -150,21 +189,21 @@ fi
 cd ${source_dir}
 if test $binary_install -eq 0 ; then
     # Source install
-    ant deploy | tee -a $log_file
-    echo "Deplying EchoService" | tee -a $log_file
-    ant deploy-echoservice | tee -a $log_file
-    echo "Deplying tests" | tee -a $log_file
-    ant deploy-tests | tee -a $log_file
+    log_cmd ant deploy
+    log "Deplying EchoService"
+    log_cmd ant deploy-echoservice
+    log "Deplying tests"
+    log_cmd ant deploy-tests
 else
     # Binary install
-    echo "Deploying schemas gar" | tee -a $log_file
-    ${DEPLOY_GAR} gridshib-gt-schemas-${version_mod}.gar | tee -a $log_file
-    echo "Deploying stubs gar" | tee -a $log_file
-    ${DEPLOY_GAR} gridshib-gt-stubs-${version_mod}.gar | tee -a $log_file
-    echo "Deploying main gar" | tee -a $log_file
-    ${DEPLOY_GAR} gridshib-gt-${version_mod}.gar | tee -a $log_file
-    echo "Deploying GridShib Echo service" | tee -a $log_file
-    ${DEPLOY_GAR} gridshib-gt-echo-${version_mod}.gar | tee -a $log_file
+    log "Deploying schemas gar"
+    log_cmd ${DEPLOY_GAR} gridshib-gt-schemas-${version_mod}.gar
+    log "Deploying stubs gar"
+    log_cmd ${DEPLOY_GAR} gridshib-gt-stubs-${version_mod}.gar
+    log "Deploying main gar"
+    log_cmd ${DEPLOY_GAR} gridshib-gt-core-${version_mod}.gar
+    log "Deploying GridShib Echo service"
+    log_cmd ${DEPLOY_GAR} gridshib-gt-echo-${version_mod}.gar
 fi
 
 touch $gridshib_installed_flag
@@ -173,7 +212,7 @@ touch $gridshib_installed_flag
 #
 # Success.
 
-echo "Success" | tee -a $log_file
+log "Success"
 exit 0
 
     
