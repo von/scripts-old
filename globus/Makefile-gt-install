@@ -8,10 +8,15 @@
 #
 # Lines begining with "#!" are output by 'make help'
 #
+#!
+#! This should be run as user 'globus' with $GLOBUS_LOCATION
+#! created and also owned by user globus.
+#!
 #! Usage: make [<options>] [<target>]
 #!
 #! Options are: 
 #!   VERSION=x.x.x           Specify version of Globus Toolkit to install.
+#!   INSTALLER_URL=url       URL to installer to use.
 #!   DOWNLOAD_DIR=path       Specify path to which to download tarball
 #!                           Default is /tmp
 #!   BUILD_DIR=path          Specify path in which to build
@@ -34,7 +39,7 @@
 
 #
 # Version of GT to download and install
-VERSION=4.0.3
+VERSION=4.0.4
 
 # Various binaries and commands
 DATE=date
@@ -99,34 +104,56 @@ INSTALL_FLAG=$(GLOBUS_LOCATION)/gt-build-flag-install
 default: gt-installed
 
 $(GLOBUS_LOCATION):
-	$(MKDIR) $(GLOBUS_LOCATION)
+	echo $(GLOBUS_LOCATION) does not exist.
+	exit 1
 
+#
+# Download installer
+#
 installer: $(INSTALLER_FLAG)
 
 $(INSTALLER_FLAG):
 	$(RM) $(DOWNLOAD_DIR)/$(INSTALLER)
 	(cd $(DOWNLOAD_DIR) && $(WGET) $(INSTALLER_URL) && $(TOUCH) $(INSTALLER_FLAG))
 
+#
+# Unpack installer
+#
 unpacked: $(UNPACKED_FLAG)
 
 $(UNPACKED_FLAG): $(INSTALLER_FLAG)
 	(cd $(BUILD_DIR) && $(TAR) xvfz $(DOWNLOAD_DIR)/$(INSTALLER) && $(TOUCH) $(UNPACKED_FLAG))
 
+#
+# Configure installer
+#
 configure: $(CONFIGURE_FLAG)
 
 $(CONFIGURE_FLAG): $(UNPACKED_FLAG)
 	($(SET_GL) && cd $(INSTALLER_DIR) && ./configure --prefix=$(GLOBUS_LOCATION) && $(TOUCH) $(CONFIGURE_FLAG)) $(LOG)
 
+#
+# Build installer
+#
 build: $(BUILD_FLAG)
 
 $(BUILD_FLAG): $(CONFIGURE_FLAG)
 	($(SET_GL) && cd $(INSTALLER_DIR) && $(MAKE) && $(TOUCH) $(BUILD_FLAG)) $(LOG)
 
+#
+# Do install
+#
+
 # 'make install' forces a complete rebuild
 install: $(BUILD_FLAG) $(GLOBUS_LOCATION) $(INSTALL_FLAG)
 
 # gt-installed doesn't force a rebuild if $(INSTALL_FLAG) exists
-gt-installed: $(INSTALL_FLAG)
+gt-installed:
+	@if test -f $(INSTALL_FLAG) ; then \
+		: \
+	else \
+		$(MAKE) $(INSTALL_FLAG) ;\
+	fi
 
 $(INSTALL_FLAG): $(BUILD_FLAG)
 	($(SET_GL) && cd $(INSTALLER_DIR) && $(MAKE) install && $(TOUCH) $(INSTALL_FLAG)) $(LOG)
@@ -139,14 +166,14 @@ clean:
 # GridShib download and install
 #
 
-# Version of GridShib for Shib to install
-GRIDSHIB_VERSION=0.4.1
+# Version of GridShib for GT to install
+GRIDSHIB_VERSION=0.5.1
 # Version string with underscores instead of periods
 GRIDSHIB_VERSION_INT=$(shell echo $(GRIDSHIB_VERSION) | sed -e "s/\./_/g")
 # Installer tar ball
-GS_INSTALLER=gridshib-gt-bin-$(GRIDSHIB_VERSION_INT).tar.gz
+GS_INSTALLER=gridshib-gt-bin-$(GRIDSHIB_VERSION_INT)-GT4.0.tar.gz
 # Unpacked installer tarball
-GS_INSTALLER_DIR=$(BUILD_DIR)/gridshib-gt-bin-$(GRIDSHIB_VERSION)
+GS_INSTALLER_DIR=$(BUILD_DIR)/gridshib-gt-bin-$(GRIDSHIB_VERSION_INT)-GT4.0
 # URL for the installer
 GS_INSTALLER_URL=http://gridshib.globus.org/downloads/$(GS_INSTALLER)
 # tee command to run to save to gridshib log file
