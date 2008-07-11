@@ -93,6 +93,7 @@ push(@BackupDirs, $Home . "/mail/");
 push(@BackupDirs, $Home . "/scripts/");
 push(@BackupDirs, $Home . "/.globus/");
 push(@BackupDirs, $Home . "/develop/scripts/");
+push(@BackupDirs, $Home . "/Pictures");
 
 print "Backing up: " . join(' ', @BackupDirs) . "\n";
 
@@ -108,7 +109,7 @@ push(@ExcludeFiles, "*.tmp");
 push(@ExcludeFiles, "OLD/*");
 
 # MSWord tmp files
-push(@ExcludeFiles, "~$*.doc");
+push(@ExcludeFiles, "~\$*.doc");
 
 # Emacs backups
 push(@ExcludeFiles, "*~");
