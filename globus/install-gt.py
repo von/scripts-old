@@ -195,21 +195,20 @@ def main():
     # Figure out the URL to the Globus tarball
     (globusMajorVersion,
      globusMinorVersion,
-     globusPointVersion) = globusVersion.split('.')
+     globusPointVersion) = map(int, globusVersion.split('.'))
     # XXX Change this to http
     globusBaseURL="ftp://ftp.globus.org/pub"
-    if (globusMajorVersion == "4") and (globusMinorVersion == "0"):
+    if (globusMajorVersion == 4) and (globusMinorVersion == 0):
         # 4.0.x URLs are of the form "gt4/4.0/4.0.4/installers/etc/..."
-        globusURL = "%s/gt%s/%s.%s/%s/installers/src/%s" % (globusBaseURL,
+        globusURL = "%s/gt%d/%d.%d/%s/installers/src/%s" % (globusBaseURL,
                                                             globusMajorVersion,
                                                             globusMajorVersion,
                                                             globusMinorVersion,
                                                             globusVersion,
                                                             globusTarball)
-    elif ((globusMajorVersion == "4") and 
-          ((globusMinorVersion == "1") or (globusMinorVersion == "2"))):
+    elif (globusMajorVersion == 4) and (globusMinorVersion >= 1):
         # 4.1.x and 4.2.x are of the form "gt4/4.1.1/installers/etc/..."
-        globusURL = "%s/gt%s/%s/installers/src/%s" % (globusBaseURL,
+        globusURL = "%s/gt%d/%s/installers/src/%s" % (globusBaseURL,
                                                       globusMajorVersion,
                                                       globusVersion,
                                                       globusTarball)
