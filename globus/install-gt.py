@@ -206,8 +206,9 @@ def main():
                                                             globusMinorVersion,
                                                             globusVersion,
                                                             globusTarball)
-    elif (globusMajorVersion == "4") and (globusMinorVersion == "1"):
-        # 4.1.x are of the form "gt4/4.1.1/installers/etc/..."
+    elif ((globusMajorVersion == "4") and 
+          ((globusMinorVersion == "1") or (globusMinorVersion == "2"))):
+        # 4.1.x and 4.2.x are of the form "gt4/4.1.1/installers/etc/..."
         globusURL = "%s/gt%s/%s/installers/src/%s" % (globusBaseURL,
                                                       globusMajorVersion,
                                                       globusVersion,
