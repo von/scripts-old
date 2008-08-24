@@ -5,6 +5,8 @@
 #
 # Make a copy of a VMWare VM.
 #
+# Kudos: http://blog.kovyrin.net/2007/04/08/how-to-clone-virtual-machine-with-vmware-server/
+#
 # $Id$
 #
 ######################################################################
