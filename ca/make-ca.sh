@@ -39,7 +39,7 @@ Options:
 EOF
 }
 
-while getopts c:ho:u: arg
+while getopts c:ho:p:u: arg
 do
   case $arg in
   c) COUNTRY_NAME=$OPTARG ;;
