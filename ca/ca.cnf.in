@@ -27,7 +27,8 @@ organizationalUnitName	= supplied
 [ ca_extensions ]
 #subjectAltName		= DNS:altname.somewhere.com
 basicConstraints	= CA:false
-nsCertType		= server
+#nsCertType		= server
+authorityKeyIdentifier  = keyid
 
 [ req ]
 default_bits	= 2048
@@ -48,6 +49,8 @@ commonName		= $ENV::COMMON_NAME
 
 [ root_ca_extensions ]
 basicConstraints	= CA:true
+subjectKeyIdentifier    = hash
 
 [ sub_ca_extensions ]
 basicConstraints	= CA:true
+subjectKeyIdentifier    = hash
