@@ -78,7 +78,10 @@ open(TMP_FILE, ">$tmp_file") ||
   die "Could not open $tmp_file for writing: $!";
 
 while(<CVS_DIFF>) {
-    print TMP_FILE "CVS: " . $_;
+  # Ignore unknown files
+  /^\? / && next;
+
+  print TMP_FILE "CVS: " . $_;
 }
 
 close(CVS_DIFF);
