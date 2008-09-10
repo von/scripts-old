@@ -2,6 +2,8 @@
 #
 # Makefile for scripts
 #
+# Hmmm, use automake for this?
+#
 ######################################################################
 
 INSTALL_DIR=$(HOME)/scripts
@@ -34,12 +36,14 @@ $(INSTALL_DIR):
 # Replace Makefile.inc with Makefile.tmp only if it is different
 update: Makefile.tmp
 	@if test -f Makefile.inc ; then \
-		diff Makefile.tmp Makefile.inc > /dev/null || mv Makefile.tmp Makefile.inc ; \
+		diff $^ Makefile.inc > /dev/null || mv $^ Makefile.inc ; \
 	else \
 		mv Makefile.tmp Makefile.inc ;\
 	fi
 	@rm -f Makefile.tmp
 
+# TODO: If we have two scripts here with the same basename, we'll run into
+# problems here.
 Makefile.tmp:
 	@echo "" > $@
 	@for ext in .py .pl .sh ; do \
