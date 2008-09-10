@@ -21,6 +21,7 @@ MKDIR=mkdir -p
 default: 
 	@echo "Use 'make install' to install."
 	@echo "Install directory is $(INSTALL_DIR)"
+	@echo "Use 'make update' to rebuild list of utilities."
 
 ######################################################################
 
