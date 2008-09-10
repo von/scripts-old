@@ -388,6 +388,7 @@ class NCSAWirelessPortal:
 	output("Success.")
         # Go ahead and refresh our kerberos ticket
         #kerberos_get_creds(username, passwd)
+        sys.stdout.flush()
 	return 1
 
     def reachable(self):
