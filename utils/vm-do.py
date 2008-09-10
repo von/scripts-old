@@ -11,6 +11,7 @@
 # From: http://mywiki.ncsa.uiuc.edu/wiki/VM_Servers
 vms = []
 
+# TODO: Put this into a configuration file
 vms.append({ "hostname" : "csd-wiki.ncsa.uiuc.edu",
              "up": True,
              })
@@ -40,6 +41,15 @@ vms.append({ "hostname": "spi-unprotected.ncsa.uiuc.edu",
              "up": False,
              })
 vms.append({ "hostname": "myvocs-box.ncsa.uiuc.edu",
+             "up": False,
+             })
+vms.append({ "hostname": "gridshib-sp.ncsa.uiuc.edu",
+             "up": False,
+             })
+vms.append({ "hostname": "gridshib-ca.ncsa.uiuc.edu",
+             "up": False,
+             })
+vms.append({ "hostname": "osb3.ncsa.uiuc.edu",
              "up": False,
              })
 
@@ -74,6 +84,9 @@ if options.check and options.reverseCheck:
 # Get names of all the VMs that should be up
 vmList = map(lambda vm: vm["hostname"],
              filter(lambda vm: vm["up"] is True, vms))
+
+# TODO: Check and make sure we have a SSH key in agent by running
+# 'ssh-add -l' and checking for zero status.
 
 import subprocess
 for vm in vmList:
