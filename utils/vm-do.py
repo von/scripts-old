@@ -53,38 +53,60 @@ class VirtualMachine:
     def __str__(self):
         return self.name()
 
-    def runCmd(self, cmdArgs):
+    def runCmd(self, cmdArgs, input=None):
         """Execute command on VM, return return code."""
         import subprocess
         sshArgs = [self.options["sshCmd"],
                    "-o", "BatchMode yes",
                    self.getHostname()]
         sshArgs.extend(cmdArgs)
-        return subprocess.call(sshArgs)
-
-    def getCmdOutput(self, cmdArgs):
-        """Execute command on VM, return output."""
-        import subprocess
-        sshArgs = [self.options["sshCmd"],
-                   "-o", "BatchMode yes",
-                   self.getHostname()]
-        sshArgs.extend(cmdArgs)
-        return subprocess.Popen(sshArgs, stdout=subprocess.PIPE).communicate()[0]
+        pipe = subprocess.Popen(sshArgs,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                stdin=subprocess.PIPE)
+        (stdout, stderr) = pipe.communicate(input)
+        status = pipe.returncode
+        return (status, stdout, stderr)
 
     def getOSVersion(self):
         """Return a string with the OS version on the machine."""
         # XXX FC-specific
-        return self.getCmdOutput(["cat", "/etc/fedora-release"])
+        (status, stdout, stderr) = self.runCmd(["cat", "/etc/fedora-release"])
+        return stdout
 
 ######################################################################
 
+def checkSSHKeys():
+    """Make sure we have a SSH key in our SSH agent."""
+    import subprocess
+    while True:
+        # Run and squelch STDOUT
+        pipe = subprocess.Popen(["ssh-add", "-l"],
+                                stdout=subprocess.PIPE)
+        pipe.communicate()  # Discard output
+        status = pipe.returncode
+        if status == 0:
+            # We have a key
+            break
+        print "No SSH key detected in SSH-Agent."
+        status = subprocess.call(["ssh-add"])
+        
+######################################################################
+
 def runCmd(vms, options, args):
+    if options.inputFilename:
+        print "Taking input from file \"%s\"" % options.inputFilename
+        inputFile = file(options.inputFilename)
+        input = "".join(inputFile.readlines())
+        inputFile.close()
+    else:
+        input = None
     for vm in vms:
         if not vm.isUp(): continue
         if options.printHostname:
             print vm.getName() + ": ",
             sys.stdout.flush()
-        status = vm.runCmd(args)
+        status = vm.runCmd(args, input=input)[0]
         print
         if status == 0:
             if options.check:
@@ -137,6 +159,9 @@ parser.add_option("-e", "--exitOnError",
 parser.add_option("-H", "--noHostname",
                   action="store_false", dest="printHostname", default=True,
                   help="Don't print hostname before command output.")
+parser.add_option("-i", "--inputFilename", dest="inputFilename",
+                  default=None,
+                  help="read input from FILE", metavar="FILE")
 parser.add_option("-O", "--printOSVersion",
                   action="store_true", dest="printOSVersion",
                   help="Print OS version on each VM.")
@@ -156,6 +181,8 @@ cmds = {
 
 if not cmds.has_key(command):
     parser.error("Unknown command \"%s\"." % command)
+
+checkSSHKeys()
 
 f = cmds[command]
 f(vms, options, args)
