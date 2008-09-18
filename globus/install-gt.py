@@ -127,7 +127,8 @@ def main():
                         clearPrevious = False,
                         globusVersion = "4.0.7",
                         logFilePath = "$GLOBUS_LOCATION/gt-install.log",
-                        sourceCachePath = ".")
+                        # XXX Multiple user problem
+                        sourceCachePath = "/tmp")
     (options, args) = parser.parse_args()
 
     # Make sure install paths exists and set GLOBUS_LOCATION
@@ -196,8 +197,8 @@ def main():
     (globusMajorVersion,
      globusMinorVersion,
      globusPointVersion) = map(int, globusVersion.split('.'))
-    # XXX Change this to http
-    globusBaseURL="ftp://ftp.globus.org/pub"
+    #globusBaseURL="ftp://ftp.globus.org/pub"
+    globusBaseURL="http://www-unix.globus.org/ftppub"
     if (globusMajorVersion == 4) and (globusMinorVersion == 0):
         # 4.0.x URLs are of the form "gt4/4.0/4.0.4/installers/etc/..."
         globusURL = "%s/gt%d/%d.%d/%s/installers/src/%s" % (globusBaseURL,
