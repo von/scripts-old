@@ -4,7 +4,7 @@ Backup all the VMs on the system to a remote directory via scp.
 Must have ability to scp to remote system without manual
 authentication.
 
-Use vmware-cmd:
+Uses vmware-cmd:
 http://www.vmware.com/support/esx21/doc/vmware-cmd.html
 
 $Id$
@@ -12,10 +12,10 @@ $Id$
 TODO:
 Add file in VM dir with last backup time and checksum.
 """
+from __future__ import with_statement
+
 
 ######################################################################
-
-from __future__ import with_statement
 
 binaries = {
     "scp" : "scp",
@@ -132,31 +132,32 @@ class VirtualMachine(VirtualMachineBaseObject):
     def backup(self, tarfile):
         """Back up VM to given tarball file."""
         restartVM = False
-        if vm.getState() == "on":
-            vm.suspend()
+        if self.getState() == "on":
+            self.suspend()
             restartVM = True
         dir = os.path.dirname(self._configFile)
         # Path to parent directory of the VM directory
         parent = os.path.normpath(os.path.join(dir, ".."))
-        # The VM directory itself (just the last path component)
-        vmDir = os.path.relpath(dir, parent)
         # If we just run tar with the directory name, tar will exit with
         # an error since we change the contents (access time) of the directory
         # contents while it is tar'ing the directory. So create a list of all
         # the files in the VM directory (with vmDir as prefix) and pass
         # that to tar.
-        files = [os.path.join(vmDir, file) for file in os.listdir(dir)]
-        status = subprocess.call(
-            ["tar", "cfvz", tarfile] + files,
-            # We're going to create tarfile from parent of the VM
-            cwd = parent,
-            # Try to keep stderr and stdout in sync
-            stderr=subprocess.STDOUT)
-        if restartVM:
-            # Hmmm, if this fails, we may never see tar error...
-            vm.start()
-        if status != 0:
-            raise VirtualMachineException("tar returned %d" % status)
+        files = [os.path.join(dir, file) for file in os.listdir(dir)]
+        # I would like to makes files relative to parent, but no
+        # obvious way to do that in python pre-2.6
+        try:
+            status = subprocess.call(
+                ["tar", "cfvz", tarfile] + files,
+                # We're going to create tarfile from parent of the VM
+                cwd = parent,
+                # Try to keep stderr and stdout in sync
+                stderr=subprocess.STDOUT)
+            if status != 0:
+                raise VirtualMachineException("tar returned %d" % status)
+        finally:
+            if restartVM:
+                self.start()
 
     def configFile(self):
         """Return path to configuration file."""
@@ -192,95 +193,100 @@ def markTime():
 
 ######################################################################
 
-# Use parser for usage and future expansion
-usage="usage: %prog [options]"
-parser = optparse.OptionParser(usage=usage)
-parser.add_option("-d", "--destDir", dest="destDir", default=None,
-                  help="save backups to DESTDIR", metavar="DESTDIR")
-parser.add_option("-s", "--scpDest", dest="scpDest", default=None,
-                  help="save backups to SCPTARGET. This be a scp-style destination (e.g. user@host:/some/path)", metavar="SCPTARGET")
-(options, args) = parser.parse_args()
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+    # Use parser for usage and future expansion
+    usage="usage: %prog [options]"
+    parser = optparse.OptionParser(usage=usage)
+    parser.add_option("-d", "--destDir", dest="destDir", default=None,
+                      help="save backups to DESTDIR", metavar="DESTDIR")
+    parser.add_option("-s", "--scpDest", dest="scpDest", default=None,
+                      help="save backups to SCPTARGET. This be a scp-style destination (e.g. user@host:/some/path)", metavar="SCPTARGET")
+    (options, args) = parser.parse_args(argv)
 
-if not (options.destDir or options.scpDest):
-    parser.error("No destination specified. Need one of -d or -s.")
+    if not (options.destDir or options.scpDest):
+        parser.error("No destination specified. Need one of -d or -s.")
 
-if options.destDir:
-    workingDir = options.destDir
-    removeTarfiles = False
-    if not os.path.exists(workingDir):
-        print "Destination directory does not exist: %s" options.destDir
-        sys.exit(1)
-else:
-    workingDir = tempfile.mkdtemp()
-    removeTarfiles = True
-    atexit.register(os.rmdir, workingDir)
-    print "Temporary directory is %s" % workingDir
-
-vmServer = VirtualMachineServer()
-vms = vmServer.getListOfVMs()
-
-# List of tarfiles we created
-tarfiles = []
-
-# List of VMs that successfully got tar'ed up
-tarredVMs = []
-
-for vm in vms:
-    print "Examining \"%s\"" % vm.name()
-    markTime()
-    tarfile = os.path.join(workingDir, vm.name() + ".tar.gz")
-    vmModTime = vm.getModTime()
-    print "VM modification time: %s" % time.ctime(vmModTime)
-    lastBackup = vm.getLastBackupTime()
-    if lastBackup is None:
-        print "VM has never been backed up."
+    if options.destDir:
+        workingDir = options.destDir
+        removeTarfiles = False
+        if not os.path.exists(workingDir):
+            print "Destination directory does not exist: %s" % options.destDir
+            return 1
     else:
-        print "VM lastbackup: %s" % time.ctime(lastBackup)
-        if vmModTime < lastBackup:
-            print "VM has not changed since last backup."
+        workingDir = tempfile.mkdtemp()
+        removeTarfiles = True
+        atexit.register(os.rmdir, workingDir)
+        print "Temporary directory is %s" % workingDir
+
+    vmServer = VirtualMachineServer()
+    vms = vmServer.getListOfVMs()
+
+    # List of tarfiles we created
+    tarfiles = []
+
+    # List of VMs that successfully got tar'ed up
+    tarredVMs = []
+    
+    for vm in vms:
+        print "Examining \"%s\"" % vm.name()
+        markTime()
+        tarfile = os.path.join(workingDir, vm.name() + ".tar.gz")
+        vmModTime = vm.getModTime()
+        print "VM modification time: %s" % time.ctime(vmModTime)
+        lastBackup = vm.getLastBackupTime()
+        if lastBackup is None:
+            print "VM has never been backed up."
+        else:
+            print "VM lastbackup: %s" % time.ctime(lastBackup)
+            if vmModTime < lastBackup:
+                print "VM has not changed since last backup."
+                continue
+        try:
+            print "Backing up VM to %s" % tarfile
+            vm.backup(tarfile)
+        except Exception, e:
+            print "Error backing up VM:\n" + str(e)
+            if os.path.exists(tarfile):
+                os.path.remove(tarfile)
             continue
-    try:
-        print "Backing up VM to %s" % tarfile
-        vm.backup(tarfile)
-    except Exception, e:
-        print "Error backing up VM:\n" + str(e)
-        if os.path.exists(tarfile):
-            os.path.remove(tarfile)
-        continue
-    print "Tarball created."
-    tarfiles.append(tarfile)
-    tarredVMs.append(vm)
-    runCmd([binaries["ls"], "-l", tarfile])
-    # This takes a while...
-    #runCmd([binaries["md5sum"], tarfile])
-    if os.path.exists(tarfile) and removeTarfiles:
-        atexit.register(os.remove, tarfile)
+        print "Tarball created."
+        tarfiles.append(tarfile)
+        tarredVMs.append(vm)
+        runCmd([binaries["ls"], "-l", tarfile])
+        # This takes a while...
+        # runCmd([binaries["md5sum"], tarfile])
+        if os.path.exists(tarfile) and removeTarfiles:
+            atexit.register(os.remove, tarfile)
 
-if options.scpDest and (len(tarfiles) > 0):
-    print "Backing up tarfiles via scp to %s." % options.scpDest
+        if options.scpDest and (len(tarfiles) > 0):
+            print "Backing up tarfiles via scp to %s." % options.scpDest
+            markTime()
+            cmd = [binaries["scp"]]
+            # Use blowfish for speed
+            cmd.extend(["-c", "blowfish"])
+            # Batch mode - no passwords or other prompts
+            cmd.extend(["-B"])
+            # Turn on verbose mode for debugging
+            # cmd.extend(["-v"])
+            # Names of tarfiles
+            cmd.extend(tarfiles)
+            cmd.append(options.scpDest)
+            status = runCmd(cmd)
+            if status != 0:
+                print "Error backing up tarfiles (scp returned %d)" % status
+                return 1
+
     markTime()
-    cmd = [binaries["scp"]]
-    # Use blowfish for speed
-    cmd.extend(["-c", "blowfish"])
-    # Batch mode - no passwords or other prompts
-    cmd.extend(["-B"])
-    # Turn on verbose mode for debugging
-    #cmd.extend(["-v"])
-    # Names of tarfiles
-    cmd.extend(tarfiles)
-    cmd.append(options.scpDest)
-    status = runCmd(cmd)
-    if status != 0:
-        print "Error backing up tarfiles (scp returned %d)" % status
-        sys.exit(1)
 
-markTime()
+    # Success, mark VMs as backed up
+    for vm in tarredVMs:
+        print "Marking %s as backed up." % vm.name()
+        vm.updateBackupTime()
 
-# Success, mark VMs as backed up
-for vm in tarredVMs:
-    print "Marking %s as backed up." % vm.name()
-    vm.updateBackupTime()
+    print "Done."
+    return 0
 
-print "Done."
-sys.exit(0)
-
+if __name__ == "__main__":
+    sys.exit(main())
