@@ -132,7 +132,10 @@ class VirtualMachine(VirtualMachineBaseObject):
     def backup(self, tarfile):
         """Back up VM to given tarball file."""
         restartVM = False
-        if self.getState() == "on":
+        state = self.getState()
+        self.debug("VM state is %s" % state)
+        if state == "on":
+            self.debug("Suspending VM.")
             self.suspend()
             restartVM = True
         dir = os.path.dirname(self._configFile)
@@ -144,6 +147,7 @@ class VirtualMachine(VirtualMachineBaseObject):
         # the files in the VM directory (with vmDir as prefix) and pass
         # that to tar.
         files = [os.path.join(dir, file) for file in os.listdir(dir)]
+        self.debug("Backing up: %s" % " ".join(files))
         # I would like to makes files relative to parent, but no
         # obvious way to do that in python pre-2.6
         try:
@@ -157,6 +161,7 @@ class VirtualMachine(VirtualMachineBaseObject):
                 raise VirtualMachineException("tar returned %d" % status)
         finally:
             if restartVM:
+                self.debug("Restarting VM.")
                 self.start()
 
     def configFile(self):
@@ -169,6 +174,9 @@ class VirtualMachine(VirtualMachineBaseObject):
 
     def __str__(self):
         return self.name()
+
+    def debug(self, message):
+        print message
 
 ######################################################################
 #
@@ -249,7 +257,7 @@ def main(argv=None):
         except Exception, e:
             print "Error backing up VM:\n" + str(e)
             if os.path.exists(tarfile):
-                os.path.remove(tarfile)
+                os.remove(tarfile)
             continue
         print "Tarball created."
         tarfiles.append(tarfile)
