@@ -147,16 +147,18 @@ class VirtualMachine(VirtualMachineBaseObject):
         # the files in the VM directory (with vmDir as prefix) and pass
         # that to tar.
         files = [os.path.join(dir, file) for file in os.listdir(dir)]
-        self.debug("Backing up: %s" % " ".join(files))
         # I would like to makes files relative to parent, but no
         # obvious way to do that in python pre-2.6
         try:
+            # Try to keep output from tar in sync with rest of output
+            sys.stdout.flush()
             status = subprocess.call(
                 ["tar", "cfvz", tarfile] + files,
                 # We're going to create tarfile from parent of the VM
                 cwd = parent,
                 # Try to keep stderr and stdout in sync
                 stderr=subprocess.STDOUT)
+            sys.stdout.flush()
             if status != 0:
                 raise VirtualMachineException("tar returned %d" % status)
         finally:
