@@ -124,7 +124,8 @@ class VirtualMachine(VirtualMachineBaseObject):
                     if not fnmatch.fnmatch(file, "*.log")]
         # Ignore backup file itself
         fileList = [file for file in fileList
-                    if not fnmatch.fnmatch(file, "vm-backup-last")]
+                    if not fnmatch.fnmatch(file, os.path.join(dir, "vm-backup-last"))]
+        self.debug("Checking following files for modification time: %s" % " ".join(fileList))
         # Find the latest modtime and return it
         return max(map(os.path.getmtime, fileList))
     
@@ -270,23 +271,26 @@ def main(argv=None):
         if os.path.exists(tarfile) and removeTarfiles:
             atexit.register(os.remove, tarfile)
 
-        if options.scpDest and (len(tarfiles) > 0):
-            print "Backing up tarfiles via scp to %s." % options.scpDest
-            markTime()
-            cmd = [binaries["scp"]]
-            # Use blowfish for speed
-            cmd.extend(["-c", "blowfish"])
-            # Batch mode - no passwords or other prompts
-            cmd.extend(["-B"])
-            # Turn on verbose mode for debugging
-            # cmd.extend(["-v"])
-            # Names of tarfiles
-            cmd.extend(tarfiles)
-            cmd.append(options.scpDest)
-            status = runCmd(cmd)
-            if status != 0:
-                print "Error backing up tarfiles (scp returned %d)" % status
-                return 1
+    if options.scpDest and (len(tarfiles) > 0):
+        markTime()
+        print "Backing up %d tarfiles via scp to %s." % (len(tarfiles),
+                                                         options.scpDest)
+        cmd = [binaries["scp"]]
+        # Use blowfish for speed
+        cmd.extend(["-c", "blowfish"])
+        # Batch mode - no passwords or other prompts
+        cmd.extend(["-B"])
+        # Turn on verbose mode for debugging
+        # cmd.extend(["-v"])
+        # Names of tarfiles
+        cmd.extend(tarfiles)
+        cmd.append(options.scpDest)
+        status = runCmd(cmd)
+        if status == 0:
+            print "scp completed successfully."
+        else:
+            print "Error backing up tarfiles (scp returned %d)" % status
+            return 1
 
     markTime()
 
