@@ -66,6 +66,15 @@ class VirtualMachineBaseObject:
             raise VirtualMachineException(exceptionString)
         return output
 
+    def setDebug(debug=True):
+        """Turn debugging on or off."""
+        self._debug = debug
+
+    def debug(message):
+        """Handle a debugging message."""
+        if self._debug:
+            print message
+
 class VirtualMachineServer(VirtualMachineBaseObject):
     """Object representing a VM Server."""
     
@@ -148,6 +157,9 @@ class VirtualMachine(VirtualMachineBaseObject):
         # the files in the VM directory (with vmDir as prefix) and pass
         # that to tar.
         files = [os.path.join(dir, file) for file in os.listdir(dir)]
+        # Log file always seem to change which causes tar to return error
+        files = [file for file in files
+                    if not fnmatch.fnmatch(file, "*.log")]
         # I would like to makes files relative to parent, but no
         # obvious way to do that in python pre-2.6
         try:
@@ -177,9 +189,6 @@ class VirtualMachine(VirtualMachineBaseObject):
 
     def __str__(self):
         return self.name()
-
-    def debug(self, message):
-        print message
 
 ######################################################################
 #
@@ -212,6 +221,8 @@ def main(argv=None):
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-d", "--destDir", dest="destDir", default=None,
                       help="save backups to DESTDIR", metavar="DESTDIR")
+    parser.add_option("-D", "--debug", dest="debug", default=False,
+                      help="Turn on debug messages")
     parser.add_option("-s", "--scpDest", dest="scpDest", default=None,
                       help="save backups to SCPTARGET. This be a scp-style destination (e.g. user@host:/some/path)", metavar="SCPTARGET")
     (options, args) = parser.parse_args(argv)
@@ -232,6 +243,8 @@ def main(argv=None):
         print "Temporary directory is %s" % workingDir
 
     vmServer = VirtualMachineServer()
+    if options.debug:
+        vmServer.setDebug()
     vms = vmServer.getListOfVMs()
 
     # List of tarfiles we created
