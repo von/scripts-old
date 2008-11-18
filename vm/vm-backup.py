@@ -66,11 +66,11 @@ class VirtualMachineBaseObject:
             raise VirtualMachineException(exceptionString)
         return output
 
-    def setDebug(debug=True):
+    def setDebug(self, debug=True):
         """Turn debugging on or off."""
         self._debug = debug
 
-    def debug(message):
+    def debug(self, message):
         """Handle a debugging message."""
         if self._debug:
             print message
