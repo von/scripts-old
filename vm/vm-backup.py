@@ -44,6 +44,10 @@ class VirtualMachineException(Exception):
 
 class VirtualMachineBaseObject:
     """Base object for VirtualMachine classes."""
+
+    def __init__(self):
+        self._debug = False
+
     @staticmethod
     def _runVMWareCmd(args):
         """Run vmware-cmd with given arguments and return output as an array of strings.
@@ -89,6 +93,7 @@ class VirtualMachine(VirtualMachineBaseObject):
         self._lastBackupFile = os.path.join(os.path.dirname(self._configFile),
                                             "vm-backup-last")
         self._name = os.path.splitext(os.path.basename(self._configFile))[0]
+        VirtualMachineBaseObject.__init__(self)
 
     def getState(self):
         """Return state of VM: on, off, suspended, stuck (requires user input) or unknown."""
