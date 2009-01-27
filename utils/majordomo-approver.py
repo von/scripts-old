@@ -98,6 +98,7 @@ class MajordomoList:
         self.config = MajordomoConfig(listAddr)
         self.listAddr = listAddr
         self.cmds = []
+        self.body = None
         self.debug = debug
         # Make sure we have a password for the list before proceeding
         self.password = self.config.getListPassword()
@@ -112,6 +113,18 @@ class MajordomoList:
 
     def who(self):
         self.approve("who")
+
+    def configure(self):
+        # Uses different order
+        cmd = "config %s %s" % (self.listAddr, self.password)
+        self.addCmd(cmd)
+
+    def newconfig(self, file):
+        with open(file) as f:
+            self.body = f.read()
+            self.body = self.body + "\nEOF\n";
+        cmd = "newconfig %s %s" % (self.listAddr, self.password)
+        self.addCmd(cmd)
 
     def processAddresses(self, cmd, addrs):
         # Allow for a single value for addrs
@@ -133,10 +146,13 @@ class MajordomoList:
 
     def execute(self):
         import email
-        self.addCmd("end");
         cmdStr = ""
         for cmd in self.cmds:
             cmdStr += cmd + "\n"
+        if self.body:
+            cmdStr += self.body
+        else:
+            cmdStr += "\nend\n";
         msg = email.message_from_string(cmdStr)
         majordomoAddr = self.config.getMajordomoAddr()
         cc = self.config.getCCAddr()
@@ -158,8 +174,6 @@ class MajordomoList:
             smtpServer = smtplib.SMTP(smtpServer)
             smtpServer.sendmail(frm, [majordomoAddr, cc], msg.as_string())
             smtpServer.close()
-
-        
         
 
 ######################################################################
@@ -436,6 +450,7 @@ functionsWithNoArgs = {
 # Value here is MajordomoList method() to invoke on list
 functionsWithListName = {
     "who" : "who",
+    "config" : "configure"
 }
 
 # Function with list name and set of addresses
@@ -444,6 +459,12 @@ functionsWithListName = {
 functionsWithListAndAddresses = {
     "subscribe" : "subscribe",
     "unsubscribe" : "unsubscribe",
+}
+
+# Functions with list name and filename
+# Value here is MajordomoList method() to invoke with filename as argument.
+functionsWithListAndFilename = {
+    "newconfig" : "newconfig"
 }
 
 myname = sys.argv.pop(0)
@@ -467,6 +488,12 @@ elif functionsWithListAndAddresses.has_key(cmd):
     method = functionsWithListAndAddresses[cmd]
     addresses = sys.argv
     eval("majordomoList.%s(%s)" % (method, addresses))
+    majordomoList.execute()
+elif functionsWithListAndFilename.has_key(cmd):
+    majordomoList = popAndParseListName()
+    method = functionsWithListAndFilename[cmd]
+    filename = sys.argv.pop(0)
+    eval("majordomoList.%s(\"%s\")" % (method, filename))
     majordomoList.execute()
 else:
     print "Unknown command \"%s\". Use \"%s help\" for help." % (cmd, myname)
