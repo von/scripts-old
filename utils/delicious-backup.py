@@ -3,46 +3,95 @@
 Backup delicious bookmarks.
 
 $Id$
+
+Looks for a configuration file in ~/.delivious-backup.conf with the
+follow format:
+
+[Backup]
+filename=/path/to/backup
+
+[Account]
+username=delicious-username
+password=delicious-password
 """
 
-from getpass import getpass
+from ConfigParser import ConfigParser
 from optparse import OptionParser
 import os.path
 import subprocess
 import sys
 
-# We are using OptionParser for future expansion and easy usage output
-usage ="usage: %prog [options] delicious-username"
-parser = OptionParser(usage=usage, version="$Id$")
-parser.add_option("-o", "--output", dest="filename",
-                  default="./delicious-bookmarks.xml",
-                  help="write bookmarks to FILENAME (default is 'delicious-bookmarks.xml')")
-parser.add_option("-p", "--password", dest="password", default=None,
-                  help="use PASSWORD for delicious account")
-(options, args) = parser.parse_args()
+def errorExit(fmt, *vals):
+    print fmt % vals
+    sys.exit(1)
 
-if len(args) < 1:
-    parser.error("Delicious username required.")
+defaultConfFilename = "~/.delicious-backup.config"
 
-username = args.pop(0)
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
 
-if len(args) > 0:
-    print "Ignoring extra arguments: " + ' '.join(args)
+    # We are using OptionParser for future expansion and easy usage output
+    usage ="usage: %prog [options] delicious-username"
+    parser = OptionParser(usage=usage,
+                          version="$Id$")
+    parser.add_option("-c", "--configFile", dest="confFilename",
+                      default=defaultConfFilename,
+                      help="read configuration from FILENAME (default is '%s')" % defaultConfFilename)
+    parser.add_option("-v", "--verbose",
+                      dest="verbose", default=False, action="store_true",
+                      help="turn on verbose mode")
+        
+    (options, args) = parser.parse_args(argv[1:])
 
-if options.password:
-    password = options.password
-else:
-    password = getpass("Please enter delicious password for %s: " % username)
+    if options.verbose:
+        def verbose(fmt, *vals):
+            print fmt % vals
+    else:
+        def verbose(fmt, *vals):
+            pass
 
-backupfile = options.filename
+    if len(args) > 0:
+        verbose("Ignoring extra arguments: " + ' '.join(args))
 
-subprocess.call(["wget",
-                 "--no-check-certificate",
-                 "--user=%s" % username,
-                 "--password=%s" % password,
-                 "-O%s" % backupfile,
-                 "https://api.del.icio.us/v1/posts/all"])
+    config = ConfigParser()
+    verbose("Reading configuration from %s" % options.confFilename)
+    config.read(os.path.expanduser(options.confFilename))
 
-sys.exit(0)
+    # Make sure needed sections exist
+    if not config.has_section("Account"):
+        errorExit("Configuration file \"%s\" is missing section \"Account\"", options.confFilename)
+    if not config.has_section("Backup"):
+        errorExit("Configuration file \"%s\" is missing section \"Backup\"", options.confFilename)
 
+    # XXX Could use better error handling here
+    username = config.get("Account", "username")
+    password = config.get("Account", "password")
+    backupfile = config.get("Backup", "path")
+
+    # Make sure we have all the values we need.
+    if username is None:
+        errorExit("Must specify username in configuration file or on commandline.")
+    if password is None:
+        errorExit("Must specify password in configuration file or on commandline.")
+    if backupfile is None:
+        # Should never actually get here since there is a default for this
+        errorExit("Must specify backup filename in configuration file or on commandline.")
+
+    cmdArgs = ["wget",
+               "--no-check-certificate",
+               "--user=%s" % username,
+               "--password=%s" % password,
+               "-O%s" % os.path.expanduser(backupfile),
+               "https://api.del.icio.us/v1/posts/all"]
+
+    if not options.verbose:
+        cmdArgs.append("-q")
+
+    subprocess.call(cmdArgs)
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
 
