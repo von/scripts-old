@@ -77,7 +77,7 @@ mkdir $host_dir
 # Find the ca
 #
 
-ca_dir=ca/${ca_name}
+ca_dir=${PKI_PATH}/CA/${ca_name}
 
 if [ ! -d $ca_dir ]; then
   echo "Unknown ca $ca_name: $ca_dir not found"
