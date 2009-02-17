@@ -13,6 +13,7 @@ import datetime
 import optparse
 import os
 import os.path
+import string
 import subprocess
 import sys
 import tempfile
@@ -125,7 +126,7 @@ def main():
                       help="Specify VERSION of Globus Toolkit to install (default is %default)")
     parser.set_defaults(appendLog = False,
                         clearPrevious = False,
-                        globusVersion = "4.0.7",
+                        globusVersion = "4.0.8",
                         logFilePath = "$GLOBUS_LOCATION/gt-install.log",
                         # XXX Multiple user problem
                         sourceCachePath = "/tmp")
@@ -135,7 +136,12 @@ def main():
     if len(args) != 1:
         parser.error("Missing path for installation")
     globusLocation = os.path.abspath(args.pop(0))
-    if not os.path.exists(globusLocation):
+    if os.path.exists(globusLocation):
+        if not os.path.isdir(globusLocation):
+            errorExit("Globus Location is not a directory: %s" % globusLocation)
+        if not os.access(globusLocation, os.W_OK):
+            errorExit("Globus Location is not writable: %s" % globusLocation)
+    else:
         os.makedirs(globusLocation)
     os.environ['GLOBUS_LOCATION'] = globusLocation
 
@@ -151,6 +157,16 @@ def main():
     for var in ["JAVA_HOME", "ANT_HOME"]:
         if not os.environ.has_key(var):
             errorExit("Environment variable %s is not set" % var)
+        path = os.environ[var]
+        if not os.path.exists(path):
+            errorExit("Environment variable %s points at non-existent path %s" %
+                      (var, path))
+        if not os.path.isdir(path):
+            errorExit("Environment variable %s points at non-directory %s" %
+                      (var, path))
+        if not os.access(path, os.R_OK):
+            errorExit("Environment variable %s points at non-readable path %s" %
+                      (var, path))
 
     # Create a temporary directory for working
     tmpDir = os.path.join(tempfile.gettempdir(),
@@ -267,6 +283,68 @@ def main():
     output.flaggedCmd(gtInstalledFlag,
                       ["make", "install"],
                       "Installing GT...")
+
+    output.message("Creating administrative files...")
+    startStopTemplate = string.Template("""#!/bin/sh
+set -e
+export GLOBUS_LOCATION=${GLOBUS_LOCATION}
+export JAVA_HOME=${JAVA_HOME}
+export ANT_HOME=${ANT_HOME}
+export GLOBUS_OPTIONS="-Xms256M -Xmx512M"
+
+. $$GLOBUS_LOCATION/etc/globus-user-env.sh
+
+cd $$GLOBUS_LOCATION
+case "$$1" in
+    start)
+        $$GLOBUS_LOCATION/sbin/globus-start-container-detached -p 8443
+        ;;
+    stop)
+        $$GLOBUS_LOCATION/sbin/globus-stop-container-detached
+        ;;
+    *)
+        echo "Usage: globus {start|stop}" >&2
+        exit 1
+       ;;
+esac
+exit 0
+""")
+    # All of the variables are environment variables, so just us the
+    # environment as our mapping
+    startStopString = startStopTemplate.substitute(os.environ)
+    output.message("Creating $GLOBUS_LOCATION/start-stop")
+    startStop = open(os.path.join(globusLocation, "start-stop"), "w")
+    startStop.write(startStopString)
+    startStop.close()
+
+    initTemplate = string.Template("""#!/bin/sh -e
+export GLOBUS_LOCATION=${GLOBUS_LOCATION}
+
+case "$$1" in
+  start)
+    echo "Starting Globus container at $$GLOBUS_LOCATION"
+    su - globus $$GLOBUS_LOCATION/start-stop start
+    ;;
+  stop)
+    echo "Stopping Globus container at $$GLOBUS_LOCATION"
+    su - globus $$GLOBUS_LOCATION/start-stop stop
+    ;;
+  restart)
+    $$0 stop
+    sleep 1
+    $$0 start
+    ;;
+  *)
+    printf "Usage: $$0 {start|stop|restart}\n" >&2
+    exit 1
+    ;;
+esac
+exit 0""")
+    initString = initTemplate.substitute(os.environ)
+    output.message("Creating $GLOBUS_LOCATION/init-globus")
+    init = open(os.path.join(globusLocation, "init-globus"), "w")
+    init.write(initString)
+    init.close()
 
     output.message("Success.")
 
