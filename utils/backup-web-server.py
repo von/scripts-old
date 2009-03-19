@@ -91,7 +91,7 @@ def main(argv=None):
         pathsToBackup.append(databaseBackup)
     print "Running tar...."
     print "Backing up: " + " ".join(pathsToBackup)
-    runCmd(["tar", "cfz", tarfile] + pathsToBackup)
+    runCmd(["tar", "cfzP", tarfile] + pathsToBackup)
     atexit.register(os.remove, tarfile)
     scpDest = config.get("scp", "dest")
     print "Backing up tarfile via scp to %s..." % scpDest
