@@ -171,7 +171,7 @@ class VirtualMachine(VirtualMachineBaseObject):
             # Try to keep output from tar in sync with rest of output
             sys.stdout.flush()
             status = subprocess.call(
-                ["tar", "cfvz", tarfile] + files,
+                ["tar", "cfvzP", tarfile] + files,
                 # We're going to create tarfile from parent of the VM
                 cwd = parent,
                 # Try to keep stderr and stdout in sync
