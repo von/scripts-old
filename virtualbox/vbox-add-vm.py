@@ -6,9 +6,12 @@ boot the VM, wait for it to power down and then remove it.
 
 Intended for VMs on removable drives.
 
-Note that Virtual Box apparently keeps either the xml or hard drive file
-open even after they have been unregistered. This may cause problems
-unmounting the drive until the VBox program is quite.
+Note that the Virtual Box GUI apparently keeps either the xml or hard
+drive file open even after they have been unregistered. This may cause
+problems unmounting the drive until the VBox program is quite.
+
+Todo:
+* Check to see if VM or HDD is already register before doing so.
 """
 
 import atexit
@@ -74,15 +77,17 @@ def getVMInfo(vm):
     import subprocess
     output = subprocess.Popen(["VBoxManage", "-q", "showvminfo", vm],
                               stdout=subprocess.PIPE).communicate()[0]
+    return output
 
 def getVMState(vm):
     import re
     info = getVMInfo(vm)
-    m = re.search(info, r"State:\s*([\w ]+)\(")
+    r = re.compile(r"State:\s*([\w ]+)\s*\(", re.MULTILINE)
+    m = r.search(info)
     if m is None:
-        errorMsg("Failed to parse state from VM info")
-        return None
-    return m.group(1)
+        verboseMsg("Unable to parse VM state.")
+        return "Unknown"
+    return m.group(1).strip()
 
 def waitForVMShutdown(vm):
     import time
@@ -91,8 +96,8 @@ def waitForVMShutdown(vm):
         # Sleep first to give VM time to start
         time.sleep(5)
         state = getVMState(vm)
-        verboseMsg("VM state is %s" % state)
         if state == "powered off":
+            message("VM shutdown detected.")
             break
 
 #----------------------------------------------------------------------
@@ -152,7 +157,7 @@ def main(argv=None):
     except VBoxError, err:
         errorMsg("Error registering VM %s" % settingsFile)
         return 1
-    atexit.register(unregisterVM, settingsFile)
+    atexit.register(unregisterVM, vmName)
 
     driveIndex = 0
     driveLetters = ['a', 'b', 'd']
