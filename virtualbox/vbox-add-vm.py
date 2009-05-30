@@ -12,6 +12,9 @@ problems unmounting the drive until the VBox program is quite.
 
 Todo:
 * Check to see if VM or HDD is already register before doing so.
+* Understand the VirtualBox SDK and Python interface well enough
+  to use it:
+  http://blogs.sun.com/nike/entry/python_api_to_the_virtualbox
 """
 
 import atexit
