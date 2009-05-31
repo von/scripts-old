@@ -168,6 +168,7 @@ def main(argv=None):
         errorMsg("Don't know how to handle more then %d HDDs" % len(driveLetters))
         return 1
     for hdd in options.hdd:
+        hdd = os.path.abspath(hdd)
         try:
             registerHDD(hdd)
         except VBoxError, err:
