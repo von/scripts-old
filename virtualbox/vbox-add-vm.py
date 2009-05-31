@@ -8,7 +8,7 @@ Intended for VMs on removable drives.
 
 Note that the Virtual Box GUI apparently keeps either the xml or hard
 drive file open even after they have been unregistered. This may cause
-problems unmounting the drive until the VBox program is quite.
+problems unmounting the drive until the VBox program is quit.
 
 Todo:
 * Check to see if VM or HDD is already register before doing so.
