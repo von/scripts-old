@@ -4,11 +4,11 @@ Backup delicious bookmarks.
 
 $Id$
 
-Looks for a configuration file in ~/.delivious-backup.conf with the
+Looks for a configuration file in ~/.delicious-backup.conf with the
 follow format:
 
 [Backup]
-filename=/path/to/backup
+path=/path/to/backup
 
 [Account]
 username=delicious-username
