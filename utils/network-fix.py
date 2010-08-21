@@ -3,11 +3,27 @@
 
 Check and fix, if needed, the wireless network interface on my Mac 
 which keeps hanging.
+
+Kudos to following for pointer to airport utility
+http://osxdaily.com/2007/01/18/airport-the-little-known-command-line-wireless-utility/
+
 """
 from optparse import OptionParser
 import subprocess
 import sys
 import time
+
+# Binaries
+Binary = {
+    # Not using the airport binary at the moment, but it provides for
+    # lots of detail on airport configuration, so leaving it in case
+    # that is ever useful.
+    "airport" : "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport",
+    "networksetup" : "networksetup",
+}
+
+# Assumption this will always be the case
+AIRPORT_INTERFACE = "en1"
 
 def getDefaultRoute():
     """Return our default route as a string."""
@@ -25,9 +41,46 @@ def getDefaultRoute():
     fields = line.split()
     return fields[1]
 
+def wait_for_default_route(maxTries=10):
+    """Wait for default route to appear.
+
+    Returns True on success.
+    maxTries is number of second to wait before returning False.
+    Called after interface bounced."""
+    defaultRoute = getDefaultRoute()
+    while defaultRoute is None:
+        maxTries -= 1
+        if maxTries == 0:
+            print "Giving up waiting for interface to come back."
+            return False
+        print "Waiting for interface to come back..."
+        time.sleep(2)
+        defaultRoute = getDefaultRoute()
+    return True
+
 def checkConnectivity(address, numberPings=3):
     """Check for connectivity to given address. Returns True or False."""
     args = ["ping", "-c", str(numberPings), address]
+    result = subprocess.call(args)
+    return (result == 0)
+
+def checkAirport():
+    """Is the airport interface on and connected to a wifi network?"""
+    args = [Binary["networksetup"], "-getairportpower", AIRPORT_INTERFACE]
+    output = subprocess.check_output(args)
+    lines = output.splitlines()
+    # If Airport is off we'll get:
+    # AirPort: Off
+    if lines[0].endswith("Off"):
+        return False
+    elif lines[0].endswith("On"):
+        return True
+    # Punt
+    raise Exception("Could not determine statust of airpot (%s)" % AIRPORT_INTERFACE)
+    
+def power_on_airport():
+    """Power on the airport."""
+    args = [Binary["networksetup"], "-setairportpower", AIRPORT_INTERFACE, "on"]
     result = subprocess.call(args)
     return (result == 0)
 
@@ -45,6 +98,12 @@ def main(argv=None):
     (options, args) = parser.parse_args()
     if options.quiet:
         print "Running quietly..."
+    if not checkAirport():
+        print "Airport is off. Powering on..."
+        if not power_on_airport():
+            print "Failed to power on airport."
+            return(1)
+        wait_for_default_route()
     defaultRoute = getDefaultRoute()
     if defaultRoute:
         print "Default route is %s" % defaultRoute
@@ -54,30 +113,22 @@ def main(argv=None):
         print "Cannot reach default router."
     else:
         print "Couldn't determine default route."
-    # Bounce the interface
-    interface="en1" # XXX This is an assumption
+
     print "Bouncing interface"
-    subprocess.check_call(["sudo", "ifconfig", interface, "down"])
-    subprocess.check_call(["sudo", "ifconfig", interface, "up"])
+    subprocess.check_call(["sudo", "ifconfig", AIRPORT_INTERFACE, "down"])
+    subprocess.check_call(["sudo", "ifconfig", AIRPORT_INTERFACE, "up"])
 
-    # XXX Airport may not come back up here. Don't know how to detect that.
-    # Looks like I can use the airport utility at
-    # /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport /usr/sbin/airport
-    # Kudos: http://osxdaily.com/2007/01/18/airport-the-little-known-command-line-wireless-utility/
-
-    # Wait for default route to reappear
-    defaultRoute = getDefaultRoute()
-    maxTries = 10
-    while defaultRoute is None:
-        maxTries -= 1
-        if maxTries == 0:
-            print "Giving up waiting for interface to come back."
+    # Airport may not come back up here.
+    if not checkAirport():
+        print "Airport is off. Powering on..."
+        if not power_on_airport():
+            print "Failed to power on airport."
             return(1)
-        print "Waiting for interface to come back..."
-        time.sleep(2)
-        defaultRoute = getDefaultRoute()
+
+    wait_for_default_route()
+
     print "Rechecking connectivity to default route."
-    if not checkConnectivity(defaultRoute):
+    if not checkConnectivity(getDefaultRoute()):
         print "Cannot reach the default router after interface bounce."
         return(1)
     print "Success."
