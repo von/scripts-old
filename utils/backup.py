@@ -108,8 +108,7 @@ def main(argv=None):
         # this seems to work better.
         arguments.append("-auc")
         if not options.quiet:
-            pass
-            #arguments.append("-v")
+            arguments.append("-v")  # Verbose mode
         arguments.append("--delete")
         arguments.append("--delete-excluded")
         if excludes_file is not None:
