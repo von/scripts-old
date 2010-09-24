@@ -19,6 +19,7 @@ Binary = {
     # lots of detail on airport configuration, so leaving it in case
     # that is ever useful.
     "airport" : "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport",
+    "dscacheutil" : "dscacheutil",
     "networksetup" : "networksetup",
 }
 
@@ -84,6 +85,12 @@ def power_on_airport():
     result = subprocess.call(args)
     return (result == 0)
 
+def flush_dns_cache():
+    """Flush our DNS cache."""
+    args = [Binary["dscacheutil"], "-flushcache"]
+    result = subprocess.call(args)
+    return (result == 0)
+
 def main(argv=None):
     # Do argv default this way, as doing it in the functional
     # declaration sets it at compile time.
@@ -124,6 +131,11 @@ def main(argv=None):
         if not power_on_airport():
             print "Failed to power on airport."
             return(1)
+
+    # Flush DNS cache. Not sure why, but if we tried to access a site
+    # while network was down, we get redirects to OpenDNS for a while
+    # after network comes back up.
+    flush_dns_cache()
 
     wait_for_default_route()
 
