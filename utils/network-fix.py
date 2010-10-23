@@ -65,10 +65,13 @@ def checkAndFixNetwork(interface="en1"):
     # after network comes back up.
     flush_dns_cache()
 
-    wait_for_default_route()
+    print "Waiting for default route to come back..."
+    defaultRoute = wait_for_default_route()
+    if defaultRoute is None:
+        raise Exception("Could not determine default route.")
 
-    print "Rechecking connectivity to default route."
-    if not checkConnectivity(getDefaultRoute()):
+    print "Rechecking connectivity to default route (%s)." % defaultRoute
+    if not checkConnectivity(defaultRoute):
         raise Exception(\
             "Cannot reach the default router after interface bounce.")
 
@@ -94,7 +97,7 @@ def getDefaultRoute():
 def wait_for_default_route(maxTries=10):
     """Wait for default route to appear.
 
-    Returns True on success.
+    Returns default_route on success, None on failure.
     maxTries is number of second to wait before returning False.
     Called after interface bounced."""
     defaultRoute = getDefaultRoute()
@@ -106,7 +109,7 @@ def wait_for_default_route(maxTries=10):
         print "Waiting for interface to come back..."
         time.sleep(2)
         defaultRoute = getDefaultRoute()
-    return True
+    return defaultRoute
 
 def checkConnectivity(address, numberPings=3):
     """Check for connectivity to given address. Returns True or False."""
