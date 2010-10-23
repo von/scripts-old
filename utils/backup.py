@@ -22,6 +22,7 @@ import ConfigParser
 from optparse import OptionParser
 import os
 import os.path
+import shutil
 import subprocess
 import sys
 
@@ -87,7 +88,11 @@ def main(argv=None):
     if len(source_paths) == 0:
         message("No source paths defined.")
         return 0
-    
+
+    log_file = os.path.join(target_volume, "backup.log")
+    if os.path.exists(log_file):
+        shutil.move(log_file, log_file + ".bak")
+                    
     # Do it
     count = 0
     for source_path in source_paths:
@@ -114,6 +119,7 @@ def main(argv=None):
         if excludes_file is not None:
             arguments.append("--exclude-from")
             arguments.append(excludes_file)
+        arguments.append("--log-file=%s" % log_file)
         arguments.append(source_path)
         arguments.append(target_path)
         return_code = subprocess.check_call(arguments)
