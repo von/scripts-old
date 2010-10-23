@@ -18,8 +18,8 @@ fi
 dst=$1; shift
 
 # Disk can be determined with 'drutil status'
-# I'm not sure how consistent this is
-src=/dev/disk2
+# Todo: determine this dynamically, it is not consistent.
+src=/dev/disk3
 
 echo "Unmounting CD-ROM..."
 diskutil unmountDisk $src
