@@ -173,7 +173,8 @@ def main(argv=None):
             if checkAndFixNetwork():
                 failures += 1
             print "Failure rate is %4.2f%% (%d/%d)" \
-                % (failures * 100 / totalRuns, failures, totalRuns)
+                % (float(failures) * 100 / float(totalRuns),
+                   failures, totalRuns)
             time.sleep(options.delay)
     result = checkAndFixNetwork()
     if not result:
