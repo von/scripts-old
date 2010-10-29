@@ -105,7 +105,7 @@ def wait_for_default_route(maxTries=10):
         maxTries -= 1
         if maxTries == 0:
             print "Giving up waiting for interface to come back."
-            return False
+            return None
         print "Waiting for interface to come back..."
         time.sleep(2)
         defaultRoute = getDefaultRoute()
