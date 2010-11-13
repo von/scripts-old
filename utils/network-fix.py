@@ -9,6 +9,7 @@ http://osxdaily.com/2007/01/18/airport-the-little-known-command-line-wireless-ut
 
 """
 from optparse import OptionParser
+import re
 import subprocess
 import sys
 import time
@@ -78,6 +79,8 @@ def checkAndFixNetwork(interface="en1"):
     print "Success."
     return fixed
 
+IP_ADDR_REGEX = re.compile("\d+\.\d+\.\d+\.\d+")
+
 def getDefaultRoute():
     """Return our default route as a string."""
     args = ["netstat", "-rn"]
@@ -91,21 +94,25 @@ def getDefaultRoute():
         return None
     # Expecting line to look like:
     # default            192.168.1.1        UGSc           35        0     en1
-    fields = line.split()
-    return fields[1]
+    default_route = line.split()[1]
+    if IP_ADDR_REGEX.match(default_route) is None:
+        raise Exception("Failed to parse default route: {}".format(line))
+    return default_route
 
-def wait_for_default_route(maxTries=10):
+def wait_for_default_route(maxTries=None):
     """Wait for default route to appear.
 
     Returns default_route on success, None on failure.
-    maxTries is number of second to wait before returning False.
+    maxTries is number of second to wait before returning False. If None, there
+    is no limit on number of tries.
     Called after interface bounced."""
     defaultRoute = getDefaultRoute()
     while defaultRoute is None:
-        maxTries -= 1
-        if maxTries == 0:
-            print "Giving up waiting for interface to come back."
-            return None
+        if maxTries is not None:
+            maxTries -= 1
+            if maxTries == 0:
+                print "Giving up waiting for interface to come back."
+                return None
         print "Waiting for interface to come back..."
         time.sleep(2)
         defaultRoute = getDefaultRoute()
