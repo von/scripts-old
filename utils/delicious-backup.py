@@ -20,12 +20,15 @@ from optparse import OptionParser
 import os.path
 import subprocess
 import sys
+import urllib2
 
 def errorExit(fmt, *vals):
     print fmt % vals
     sys.exit(1)
 
 defaultConfFilename = "~/.delicious-backup.config"
+
+deliciousURL = "https://api.del.icio.us/v1/posts/all"
 
 def main(argv=None):
     if argv is None:
@@ -78,17 +81,26 @@ def main(argv=None):
         # Should never actually get here since there is a default for this
         errorExit("Must specify backup filename in configuration file or on commandline.")
 
-    cmdArgs = ["wget",
-               "--no-check-certificate",
-               "--user=%s" % username,
-               "--password=%s" % password,
-               "-O%s" % os.path.expanduser(backupfile),
-               "https://api.del.icio.us/v1/posts/all"]
+    # Fetch with basic auth
+    # Kudos: http://www.voidspace.org.uk/python/articles/urllib2.shtml
 
-    if not options.verbose:
-        cmdArgs.append("-q")
+    # create a password manager
+    password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
 
-    subprocess.call(cmdArgs)
+    # Add the username and password.
+    # XXX I'm not quite sure what the realm is here, None is a catch all
+    password_mgr.add_password(None, deliciousURL, username, password)
+
+    handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+
+    opener = urllib2.build_opener(handler)
+    urllib2.install_opener(opener)
+
+
+    bookmarks = urllib2.urlopen(deliciousURL).read()
+
+    with open(backupfile, "w") as backup:
+        backup.write(bookmarks)
 
     return 0
 
