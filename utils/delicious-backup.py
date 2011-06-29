@@ -29,6 +29,7 @@ def errorExit(fmt, *vals):
 defaultConfFilename = "~/.delicious-backup.config"
 
 deliciousURL = "https://api.del.icio.us/v1/posts/all"
+deliciousRealm = "del.icio.us API"
 
 def main(argv=None):
     if argv is None:
@@ -88,8 +89,7 @@ def main(argv=None):
     password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
 
     # Add the username and password.
-    # XXX I'm not quite sure what the realm is here, None is a catch all
-    password_mgr.add_password(None, deliciousURL, username, password)
+    password_mgr.add_password(deliciousRealm, deliciousURL, username, password)
 
     handler = urllib2.HTTPBasicAuthHandler(password_mgr)
 
