@@ -16,13 +16,15 @@ password=delicious-password
 
 [API]
 URL=URL-to-use
+Realm=Authentication Realm  # Can be ommited for no realm (Pinboard)
 """
 
-from ConfigParser import ConfigParser
+import ConfigParser
 from optparse import OptionParser
 import os.path
 import subprocess
 import sys
+import urllib2
 
 def errorExit(fmt, *vals):
     print fmt % vals
@@ -57,7 +59,7 @@ def main(argv=None):
     if len(args) > 0:
         verbose("Ignoring extra arguments: " + ' '.join(args))
 
-    config = ConfigParser()
+    config = ConfigParser.ConfigParser()
     verbose("Reading configuration from %s" % options.confFilename)
     config.read(os.path.expanduser(options.confFilename))
 
@@ -66,12 +68,17 @@ def main(argv=None):
         errorExit("Configuration file \"%s\" is missing section \"Account\"", options.confFilename)
     if not config.has_section("Backup"):
         errorExit("Configuration file \"%s\" is missing section \"Backup\"", options.confFilename)
+    if not config.has_section("API"):
+        errorExit("Configuration file \"%s\" is missing section \"API\"", options.confFilename)
 
-    # XXX Could use better error handling here
     username = config.get("Account", "username")
     password = config.get("Account", "password")
     backupfile = config.get("Backup", "path")
     URL = config.get("API", "URL")
+    try:
+        realm = config.get("API", "Realm")
+    except ConfigParser.NoOptionError:
+        realm = None  # Legal and require for PinBoard
 
     # Make sure we have all the values we need.
     if username is None:
@@ -82,17 +89,30 @@ def main(argv=None):
         # Should never actually get here since there is a default for this
         errorExit("Must specify backup filename in configuration file or on commandline.")
 
-    cmdArgs = ["wget",
-               "--no-check-certificate",
-               "--user=%s" % username,
-               "--password=%s" % password,
-               "-O%s" % os.path.expanduser(backupfile),
-               URL]
+    if URL is None:
+        errorExit("Must specify URL in configuration file.")
 
-    if not options.verbose:
-        cmdArgs.append("-q")
+    # Fetch with basic auth
+    # Kudos: http://www.voidspace.org.uk/python/articles/urllib2.shtml
 
-    subprocess.call(cmdArgs)
+    # create a password manager
+    password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+
+    # Add the username and password.
+    password_mgr.add_password(None, URL, username, password)
+
+    handler = urllib2.HTTPBasicAuthHandler(password_mgr)
+
+    opener = urllib2.build_opener(handler)
+    urllib2.install_opener(opener)
+
+    try:
+        bookmarks = urllib2.urlopen(URL).read()
+    except urllib2.HTTPError as e:
+        errorExit("Error fetching bookmarks: " + str(e))
+
+    with open(backupfile, "w") as backup:
+        backup.write(bookmarks)
 
     return 0
 
