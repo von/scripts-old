@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Backup delicious bookmarks.
+Backup delicious or pinboard.in bookmarks.
 
 $Id$
 
@@ -13,6 +13,9 @@ path=/path/to/backup
 [Account]
 username=delicious-username
 password=delicious-password
+
+[API]
+URL=URL-to-use
 """
 
 from ConfigParser import ConfigParser
@@ -68,6 +71,7 @@ def main(argv=None):
     username = config.get("Account", "username")
     password = config.get("Account", "password")
     backupfile = config.get("Backup", "path")
+    URL = config.get("API", "URL")
 
     # Make sure we have all the values we need.
     if username is None:
@@ -83,7 +87,7 @@ def main(argv=None):
                "--user=%s" % username,
                "--password=%s" % password,
                "-O%s" % os.path.expanduser(backupfile),
-               "https://api.del.icio.us/v1/posts/all"]
+               URL]
 
     if not options.verbose:
         cmdArgs.append("-q")
