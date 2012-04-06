@@ -2,9 +2,14 @@
 #
 # Install various stuff on ubuntu.
 
+# Exit on any error
+set -e
+
 SUDO="sudo"
 APT_GET="${SUDO} apt-get"
 INSTALL="${APT_GET} install"
+
+. /etc/lsb-release
 
 install_update()
 {
