@@ -22,11 +22,19 @@ install_basics()
     local BASICS="\
 	subversion git cvs \
 	build-essential \
-	logwatch \
-	screen \
-	openssh-server openssh-client \
+	openssh-client \
 	"
     ${INSTALL} ${BASICS}
+}
+
+install_server()
+{
+    local SERVER_STUFF="\
+	logwatch \
+	screen \
+	openssh-server \
+	"
+    ${INSTALL} {$SERVER_STUFF}
 }
 
 install_guis()
