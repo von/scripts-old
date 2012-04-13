@@ -36,7 +36,7 @@ install_server()
 {
     local SERVER_STUFF="\
 	logwatch \
-	screen \
+	screen tmux \
 	openssh-server \
 	"
     ${INSTALL} {$SERVER_STUFF}
