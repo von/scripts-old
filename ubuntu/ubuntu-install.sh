@@ -27,6 +27,11 @@ install_basics()
     ${INSTALL} ${BASICS}
 }
 
+install_homestuff()
+{
+    git clone http://git@www.vwelch.com/GIT/homestuff.git
+}
+
 install_server()
 {
     local SERVER_STUFF="\
