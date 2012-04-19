@@ -23,6 +23,7 @@ install_basics()
 	subversion git cvs \
 	build-essential \
 	openssh-client \
+	secure-delete \
 	"
     ${INSTALL} ${BASICS}
 }
