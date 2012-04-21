@@ -20,7 +20,7 @@ install_update()
 install_basics()
 {
     local BASICS="\
-	subversion git cvs \
+	subversion git cvs vim \
 	build-essential \
 	openssh-client \
 	secure-delete \
