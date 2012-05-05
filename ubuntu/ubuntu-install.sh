@@ -84,6 +84,14 @@ install_dropbox()
     ${SUDO} dpkg -i /tmp/dropbox.deb
 }
 
+install_virtualbox()
+{
+    echo "deb http://download.virtualbox.org/virtualbox/debian ${DISTRIB_CODENAME} contrib" | ${SUDO} tee --append /etc/apt/sources.list
+    wget -q http://download.virtualbox.org/virtualbox/debian/oracle_vbox.asc -O- | ${SUDO} apt-key add -
+    ${SUDO} ${APT_GET} update
+    ${INSTALL} virtualbox-4.1
+}
+
 if test $# -eq 0 ; then
     echo "Usage: $0 <install targets>"
     exit 0
