@@ -10,16 +10,37 @@
 #
 ######################################################################
 
-# This finds the newest file from fastlane in /tmp
-files="/tmp/gov.nsf.fastlane* /tmp/FastLane*.Print"
-file=`ls -t1 ${prefix} | head -1`
+DOWNLOAD_DIR="${HOME}/Downloads/"
 
-# Put a '.pdf' extension on it
-tmp_file="/tmp/$$.pdf"
-cp $file $tmp_file
+# Allow globs to expand to empty strings if they don't match anything
+shopt -s nullglob
 
-# And open it
-exec open $tmp_file
+# Find all fastlane files in our download directory
+files=`echo \
+${DOWNLOAD_DIR}/gov.nsf.fastlane.*.DisplayPDFServlet \
+${DOWNLOAD_DIR}/FastLane*.Print \
+${DOWNLOAD_DIR}/FastLane.*Display \
+`
+
+# XXX This test isn't working
+if test "X" = "${files}" ; then
+    echo "No Fastlane download found in ${DOWNLOAD_DIR}"
+    exit 0
+fi
+
+# Find the latest
+file=`ls -1t ${files} | head -1`
+
+echo $0
+
+echo "Opening ${file} as PDF"
+
+tmp_file="/tmp/fastlane-display-${RANDOM}-$$.pdf"
+
+cp ${file} ${tmp_file}
+open ${tmp_file}
+
+exit 0
 
 
 
