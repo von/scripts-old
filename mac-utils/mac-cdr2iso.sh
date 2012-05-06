@@ -35,7 +35,7 @@ diskutil unmountDisk $src
 ddsrc=${src}s0
 
 echo "Imaging CD-ROM..."
-dd if=${ddsrc} of=${dst} bs=2048
+dd if=${ddsrc} of=${dst} bs=2048 || exit 1
 
 echo "Success."
 ls -l $dst
