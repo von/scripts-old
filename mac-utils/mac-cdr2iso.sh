@@ -19,7 +19,14 @@ dst=$1; shift
 
 # Disk can be determined with 'drutil status'
 # Todo: determine this dynamically, it is not consistent.
-src=/dev/disk3
+s=`drutil status | grep Name`
+src=${s:(-10)}
+if test -z "$src" ; then
+    echo "No CDR detected."
+    exit 1
+fi
+
+echo "Detected CDR at ${src}"
 
 echo "Unmounting CD-ROM..."
 diskutil unmountDisk $src
