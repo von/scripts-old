@@ -92,6 +92,18 @@ install_virtualbox()
     ${INSTALL} virtualbox-4.1
 }
 
+install_freemind()
+{
+    ${SUDO} ${APT_GET} -f install libcommons-lang-java libjgoodies-forms-java libjibx-java simplyhtml
+    wget -O /tmp/freemind.deb "http://launchpadlibrarian.net/37381563/freemind_0.9.0~rc6%2Bdfsg-1ubuntu1_all.deb"
+    ${SUDO} dpkg -i /tmp/freemind.deb
+}
+
+install_abcde()
+{
+    ${SUDO} ${APT_GET} install abcde lame id3v2
+}
+
 if test $# -eq 0 ; then
     echo "Usage: $0 <install targets>"
     exit 0
