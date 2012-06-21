@@ -104,6 +104,11 @@ install_abcde()
     ${SUDO} ${APT_GET} install abcde lame id3v2
 }
 
+install_eyeD3()
+{
+    ${SUDO} ${APT_GET} install eyed3 python-eyed3
+}
+
 if test $# -eq 0 ; then
     echo "Usage: $0 <install targets>"
     exit 0
