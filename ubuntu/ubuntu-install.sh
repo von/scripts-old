@@ -112,6 +112,25 @@ install_eyeD3()
     ${SUDO} ${APT_GET} install eyed3 python-eyed3
 }
 
+install_tbb()  # Tor browser bundle
+{
+    echo -n "Determining latest version of Tor Browser Bundle... "
+    # Kudos: http://forum.tinycorelinux.net/index.php/topic,11352.0.html
+    PAGE=https://www.torproject.org/projects/torbrowser.html.en
+    LINE=$(wget -q --no-check-certificate ${PAGE} -O - | grep tor-browser-gnu-linux-i686- | head -1)
+    VERSION=$(expr match "$LINE" '.*i686-\(.*\)-dev')
+    echo ${VERSION}
+    TARBALL="tor-browser-gnu-linux-i686-${VERSION}-dev-en-US.tar.gz"
+    URL="https://www.torproject.org/dist/torbrowser/linux/${TARBALL}"
+    wget -O /tmp/${TARBALL} ${URL}
+    DEST=/usr/local/tor-browser_en-US
+    if test -d ${DEST} ; then
+        sudo rm -rf ${DEST}
+    fi
+    (cd /tmp && tar xfz ${TARBALL} && sudo mv tor-browser_en-US /usr/local)
+    echo "Tor browser bundle installed in ${DEST}"
+}
+
 if test $# -eq 0 ; then
     echo "Usage: $0 <install targets>"
     exit 0
