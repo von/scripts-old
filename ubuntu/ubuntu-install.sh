@@ -5,6 +5,9 @@
 # Exit on any error
 set -e
 
+# An unset variable is an error
+set -u
+
 SUDO="sudo"
 APT_GET="${SUDO} apt-get"
 INSTALL="${APT_GET} install"
