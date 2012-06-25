@@ -18,6 +18,8 @@ install_update()
 {
     ${APT_GET} update
     ${APT_GET} upgrade
+    # Kernel and other updates that might require a reboot
+    ${APT_GET} dist-upgrade
 }
 
 install_basics()
