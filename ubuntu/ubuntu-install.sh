@@ -45,7 +45,7 @@ install_server()
 	screen tmux \
 	openssh-server \
 	"
-    ${INSTALL} {$SERVER_STUFF}
+    ${INSTALL} ${SERVER_STUFF}
 }
 
 install_guis()
