@@ -116,21 +116,45 @@ install_eyeD3()
 
 install_tbb()  # Tor browser bundle
 {
-    echo -n "Determining latest version of Tor Browser Bundle... "
     # Kudos: http://forum.tinycorelinux.net/index.php/topic,11352.0.html
-    PAGE=https://www.torproject.org/projects/torbrowser.html.en
-    LINE=$(wget -q --no-check-certificate ${PAGE} -O - | grep tor-browser-gnu-linux-i686- | head -1)
-    VERSION=$(expr match "$LINE" '.*i686-\(.*\)-dev')
-    echo ${VERSION}
-    TARBALL="tor-browser-gnu-linux-i686-${VERSION}-dev-en-US.tar.gz"
-    URL="https://www.torproject.org/dist/torbrowser/linux/${TARBALL}"
-    wget -O /tmp/${TARBALL} ${URL}
-    DEST=/usr/local/tor-browser_en-US
-    if test -d ${DEST} ; then
-        sudo rm -rf ${DEST}
+    local _install_path=/usr/local/tor-browser_en-US
+    local _install_version_file=${_install_path}/VERSION
+    local _tor_download_url="https://www.torproject.org/projects/torbrowser.html.en"
+
+    if test -e ${_install_version_file} ; then
+        local _installed_version=$(cat ${_install_version_file})
+        echo "Installed version is ${_installed_version}"
+    else
+        local _installed_version=""
+        echo "No installed version (or can't determine version)"
     fi
-    (cd /tmp && tar xfz ${TARBALL} && sudo mv tor-browser_en-US /usr/local)
-    echo "Tor browser bundle installed in ${DEST}"
+
+    echo -n "Determining latest version of Tor Browser Bundle... "
+    local _download_line="$(wget -q --no-check-certificate ${_tor_download_url} -O - | grep tor-browser-gnu-linux-i686- | head -1)"
+    local _latest_version=$(expr match "${_download_line}" '.*i686-\(.*\)-dev')
+    echo ${_latest_version}
+
+    if test -z "${_latest_version}" ; then
+        echo "Failed to determined latest version."
+        return 1
+    fi
+
+    if test "${_installed_version}" != "${_latest_version}" ; then
+        echo "Installed latest version..."
+        local _tarball="tor-browser-gnu-linux-i686-${_latest_version}-dev-en-US.tar.gz"
+        local _url="https://www.torproject.org/dist/torbrowser/linux/${_tarball}"
+        wget -O /tmp/${_tarball} ${_url}
+        if test -d ${_install_path} ; then
+            sudo rm -rf ${_install_path}
+        fi
+        (cd /tmp && \
+            tar xfz ${_tarball} && \
+            sudo mv tor-browser_en-US ${_install_path})
+        echo ${_latest_version} > ${_install_version_file}
+        echo "Tor browser bundle version ${_latest_version} installed in ${_install_path}"
+    else
+        echo "Nothing to do."
+    fi
 }
 
 if test $# -eq 0 ; then
