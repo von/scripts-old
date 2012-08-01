@@ -180,6 +180,12 @@ install_virtualenv()
     pip install virtualenvwrapper
 }
 
+install_m2crypto()
+{
+    # Kudos: http://stackoverflow.com/a/3107169/197789
+    ${SUDO} ${APT_GET} install python-dev python-m2crypto
+}
+
 if test $# -eq 0 ; then
     echo "Usage: $0 <install targets>"
     exit 0
