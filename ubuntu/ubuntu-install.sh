@@ -157,6 +157,29 @@ install_tbb()  # Tor browser bundle
     fi
 }
 
+install_python2.6()
+{
+    # Kudos: http://askubuntu.com/a/141664
+    ${SUDO} add-apt-repository ppa:fkrull/deadsnakes
+    ${SUDO} ${APT_GET} update
+    ${SUDO} ${APT_GET} install python2.6 python2.6-dev
+}
+
+install_python2.6()
+{
+    # Kudos: http://askubuntu.com/a/141664
+    ${SUDO} add-apt-repository ppa:fkrull/deadsnakes
+    ${SUDO} ${APT_GET} update
+    ${SUDO} ${APT_GET} install python2.4 python2.4-dev
+}
+
+install_virtualenv()
+{
+    # Kudos: http://www.youtube.com/watch?v=ViIAAZ4_-aA&noredirect=1
+    ${SUDO} ${APT_GET} python-virtualenv
+    pip install virtualenvwrapper
+}
+
 if test $# -eq 0 ; then
     echo "Usage: $0 <install targets>"
     exit 0
