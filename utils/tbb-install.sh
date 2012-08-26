@@ -1,9 +1,14 @@
 #!/bin/sh
 #
 # Install/update Tor Browser Bundle
-# TODO:
-# Add checking of Tor certificate issued by “/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert High Assurance CA-3”
-
+#
+# Requires you have Erinn Clark's GPG key (0x63FEE659) installed to
+# verify signature:
+#
+# https://www.torproject.org/docs/verifying-signatures.html.en
+#
+# gpg --keyserver x-hkp://pgp.mit.edu --recv-keys 0x63FEE659
+#
 ######################################################################
 
 set -o errexit  # Fail on any error
@@ -14,6 +19,8 @@ set -o nounset  # Unset variables are an error
 # Some basic values
 
 tor_url="https://www.torproject.org/"
+
+wget_args="--no-check-certificate"  # We check gpg signature instead
 
 ######################################################################
 #
@@ -63,6 +70,15 @@ usage()
 ######################################################################
 #
 # Utilitiy functions
+
+check_gpg_keys()
+{
+    message "Checking for needed GPG keys"
+    gpg --list-keys ${gpg_key}
+    if [ $? -ne 0 ]; then
+        error "Needed GPG key not installed: ${gpg_key}"
+    fi
+}
 
 get_latest_version()
 {
@@ -124,6 +140,10 @@ if test ${DEBUG} -eq 1 -a ${QUIET} -eq 1 ; then
     error "Debug (-d) and quiet (-q) modes are incompatible."
 fi
 
+if [ ${QUIET} -eq 1 ]; then
+    wget_args=${wget_args}" -q"
+fi
+
 # The following sets some key variables depending on our local system type.
 #    bundle_prefix: The string preceding the version in the bundle name.
 #    bundle_suffix: The string following the version in the bundle name.
@@ -132,6 +152,7 @@ fi
 #    unpacked_bundle: directory containing install bundle under install_path
 #    install_path: Full path of install
 #    version_file: Path to file indicated version of installed bundle
+#    gpg_key: Key used to verify bundle signature
 
 sys=$(uname)
 debug "System type is ${sys}"
@@ -144,6 +165,7 @@ case "${sys}" in
         unpacked_bundle="TorBrowser_en-US.app/"
         install_path=${install_root}${unpacked_bundle}
         version_file=${install_path}"/VERSION"
+        gpg_key="0x63FEE659"
         ;;
 
     *)
@@ -172,6 +194,9 @@ if test -n "${installed_version}" ; then
     fi
 fi
 
+# Try to fail early...
+check_gpg_keys
+
 message "Installing new version ${latest_version}"
 bundle=${bundle_prefix}${latest_version}${bundle_suffix}
 tmp_dir=$(mktemp -d /tmp/tbb-install.XXXXXX)
@@ -179,13 +204,22 @@ debug "Temporary working directory is ${tmp_dir}"
 cd ${tmp_dir}
 bundle_url=${tor_url}${bundle_path}${bundle}
 message "Downloading bundle from ${bundle_url}"
-wget_args="--no-check-certificate"
-if [ ${QUIET} -eq 1 ]; then
-    wget_args=${wget_args}" -q"
-fi
 wget ${wget_args} -O ${bundle} ${bundle_url}
 if test ! -e ${bundle} ; then
     error "Failed to download browser bundle."
+fi
+
+message "Checking GPG signature"
+signature_file=${bundle}.asc
+signature_url=${tor_url}${bundle_path}${signature_file}
+wget ${wget_args} -O ${signature_file} ${signature_url}
+if test ! -e ${signature_file} ; then
+    error "Failed to download bundle signature."
+fi
+gpg --verify ${signature_file} ${bundle}
+# We shouldn't need following because errexit is set, but to be safe...
+if [ $? -ne 0 ] ; then
+    error "GPG signature check failed."
 fi
 
 message "Unpacking ${bundle}"
