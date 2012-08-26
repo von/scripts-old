@@ -157,7 +157,7 @@ install_tbb()  # Tor browser bundle
     fi
 }
 
-install_python2.6()
+install_python2_6()
 {
     # Kudos: http://askubuntu.com/a/141664
     ${SUDO} add-apt-repository ppa:fkrull/deadsnakes
@@ -165,7 +165,7 @@ install_python2.6()
     ${SUDO} ${APT_GET} install python2.6 python2.6-dev
 }
 
-install_python2.6()
+install_python2_4()
 {
     # Kudos: http://askubuntu.com/a/141664
     ${SUDO} add-apt-repository ppa:fkrull/deadsnakes
