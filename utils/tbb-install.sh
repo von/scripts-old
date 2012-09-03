@@ -168,6 +168,17 @@ case "${sys}" in
         gpg_key="0x63FEE659"
         ;;
 
+    Linux)
+        bundle_prefix="tor-browser-gnu-linux-x86_64-"
+        bundle_suffix="-dev-en-US.tar.gz"
+        bundle_path="/dist/torbrowser/linux/"
+        install_root="/usr/local/"
+        unpacked_bundle="tor-browser_en-US/"
+        install_path=${install_root}${unpacked_bundle}
+        version_file=${install_path}"/VERSION"
+        gpg_key="0x63FEE659"
+        ;;
+
     *)
         echo "Unknown system ${sys}"
         exit 1
@@ -241,17 +252,17 @@ fi
 # Move aside an existing install
 old_install_path=${install_path%/}".OLD"
 if test -d ${install_path} ; then
-    mv ${install_path} ${old_install_path}
+    sudo mv ${install_path} ${old_install_path}
 fi
 
 message "Installing new version to ${install_path}"
-mv ${tmp_dir}/${unpacked_bundle} ${install_root}
+sudo mv ${tmp_dir}/${unpacked_bundle} ${install_root}
 
-echo ${latest_version} > ${version_file}
+sudo echo ${latest_version} > ${version_file}
 
 if test -d ${old_install_path} ; then
     debug "Cleaning up old version"
-    rm -rf ${old_install_path}
+    sudo rm -rf ${old_install_path}
 fi
 
 message "Success."
