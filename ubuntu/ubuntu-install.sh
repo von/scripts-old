@@ -29,6 +29,7 @@ install_basics()
 	build-essential \
 	openssh-client \
 	secure-delete \
+        zsh
 	"
     ${INSTALL} ${BASICS}
 }
