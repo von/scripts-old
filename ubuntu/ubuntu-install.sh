@@ -187,6 +187,26 @@ install_m2crypto()
     ${SUDO} ${APT_GET} install python-dev python-m2crypto
 }
 
+# Medibuntu (Multimedia, Entertainment & Distractions In Ubuntu) is a
+# repository of packages that cannot be included into the Ubuntu
+# distribution for legal reasons (copyright, license, patent, etc).  
+# https://help.ubuntu.com/community/Medibuntu
+install_medibuntu()
+{
+  ${SUDO} wget --output-document=/etc/apt/sources.list.d/medibuntu.list \
+    http://www.medibuntu.org/sources.list.d/$(lsb_release -cs).list
+  ${SUDO} apt-get --quiet update
+  ${SUDO} apt-get --yes --quiet --allow-unauthenticated \
+    install medibuntu-keyring
+  ${SUDO} apt-get --quiet update
+}
+
+install_w32codecs()
+{
+  install_medibuntu
+  ${SUDO} apt-get install w32codecs
+}
+
 if test $# -eq 0 ; then
     echo "Usage: $0 <install targets>"
     exit 0
