@@ -54,6 +54,8 @@ install_guis()
     local GUI_INSTALLS="\
 	emacs \
 	keepassx \
+	keychain \
+	pass \
 	"
     ${INSTALL} ${GUI_INSTALLS}
 }
