@@ -13,6 +13,12 @@ import envoy  # pip install envoy
 output = print
 debug = print
 
+# Alphbets
+alphabets = {
+    "alphanum" : string.letters + string.digits,
+    "alphanumpunct" : string.letters + string.digits + string.punctuation,
+    }
+
 ######################################################################
 #
 # Functions to generate different types of passwords/passs phrases
@@ -22,7 +28,10 @@ def pass_word(args):
     """Generate a password."""
     min = args.min if args.min else 12
     max = args.max if args.max else 24
-    alphabet = string.letters + string.digits + string.punctuation
+    if args.charset:
+        alphabet = alphabets[args.charset]
+    else:
+        alphabet = string.letters + string.digits
     length = random.randint(min, max)
     debug("Length is {}".format(length))
     s = "".join([random.choice(alphabet) for i in xrange(length)])
@@ -101,6 +110,10 @@ def main(argv=None):
 			    help="Generate pass word")
 
     parser.add_argument("--version", action="version", version="%(prog)s 1.0")
+    parser.add_argument("-c", "--charset",
+                        default="alphanum",
+                        help="Specify character set for passwords",
+                        choices=alphabets.keys())
     parser.add_argument("-D", "--dict",
 			default="/usr/share/dict/words",
 			help="Specify dictionary file to use for pass phrases",
