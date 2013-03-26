@@ -89,6 +89,17 @@ def main(argv=None):
     verbosity_group.add_argument("-q", "--quiet",
                                  action="store_true", default=False,
                                  help="run quietly")
+
+    type_group = parser.add_mutually_exclusive_group()
+    type_group.add_argument("-p", "--phase",
+                            action='store_const', const=pass_phrase,
+                            dest='function',
+                            help="Generate pass phrase")
+    type_group.add_argument("-w", "--word",
+                            action='store_const', const=pass_word,
+                            dest='function',
+                            help="Generate pass word")
+
     parser.add_argument("--version", action="version", version="%(prog)s 1.0")
     parser.add_argument("-D", "--dict",
                         default="/usr/share/dict/words",
@@ -100,18 +111,12 @@ def main(argv=None):
     parser.add_argument("-M", "--max",
                         type=int, default=0,
                         help="Specify maximum length/words", metavar="NUM")
-    parser.add_argument("-p", "--phase",
-                        action='store_const', const=pass_phrase,
-                        dest='function',
-                        help="Generate pass phrase")
+
     parser.add_argument("-S", "--stdout",
                         action='store_const', const=output_stdout,
                         dest='out_function',
                         help="Write password to STDOUT")
-    parser.add_argument("-w", "--word",
-                        action='store_const', const=pass_word,
-                        dest='function',
-                        help="Generate pass word")
+
     args = parser.parse_args()
 
     global output
