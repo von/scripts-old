@@ -13,11 +13,6 @@ import envoy  # pip install envoy
 output = print
 debug = print
 
-# Alphbets
-alphabets = {
-    "alphanum" : string.letters + string.digits,
-    "alphanumpunct" : string.letters + string.digits + string.punctuation,
-    }
 
 ######################################################################
 #
@@ -70,6 +65,19 @@ def output_pbcopy(s, args):
 
 ######################################################################
 
+# Alphabets used by pass_word
+alphabets = {
+    "alphanum" : string.letters + string.digits,
+    "alphanumpunct" : string.letters + string.digits + string.punctuation,
+    }
+
+algorithms = {
+    "word" : pass_word,
+    "phrase" : pass_phrase,
+    }
+
+######################################################################
+
 def main(argv=None):
     # Do argv default this way, as doing it in the functional
     # declaration sets it at compile time.
@@ -99,17 +107,11 @@ def main(argv=None):
 				 action="store_true", default=False,
 				 help="run quietly")
 
-    type_group = parser.add_mutually_exclusive_group()
-    type_group.add_argument("-p", "--phase",
-			    action='store_const', const=pass_phrase,
-			    dest='function',
-			    help="Generate pass phrase")
-    type_group.add_argument("-w", "--word",
-			    action='store_const', const=pass_word,
-			    dest='function',
-			    help="Generate pass word")
-
     parser.add_argument("--version", action="version", version="%(prog)s 1.0")
+    parser.add_argument("-a", "--algorithm",
+                        default="word",
+                        help="Specify algorithm to use",
+                        choices=algorithms.keys())
     parser.add_argument("-c", "--charset",
                         default="alphanum",
                         help="Specify character set for passwords",
@@ -141,8 +143,9 @@ def main(argv=None):
     random.seed()
 
     try:
+        pass_function = algorithms[args.algorithm]
 	debug("Invoking {}".format(str(args.function)))
-	pass_str = args.function(args)
+	pass_str = pass_function(args)
 	debug("Returned from {}".format(str(args.function)))
     except Exception as e:
 	print("Failed:" + str(e))
