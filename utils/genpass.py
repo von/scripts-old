@@ -27,6 +27,10 @@ def pass_word(args):
         alphabet = alphabets[args.charset]
     else:
         alphabet = string.letters + string.digits
+    if not args.lookalikes:
+        alphabet = alphabet.translate(
+            string.maketrans('', ''),  # For pre-2.6 compatability
+            '0O1l')  # Characters to delete
     length = random.randint(min, max)
     debug("Length is {}".format(length))
     s = "".join([random.choice(alphabet) for i in xrange(length)])
@@ -125,6 +129,10 @@ def main(argv=None):
         default="/usr/share/dict/words",
         help="Specify dictionary file to use for pass phrases",
         metavar="PATH")
+    parser.add_argument(
+        "-l", "--lookalikes",
+        action="store_true", default=False,
+        help="Allow look-alike characters (0, O, 1, l, etc.)")
     parser.add_argument(
         "-m", "--min",
         type=int, default=0,
