@@ -11,8 +11,6 @@
 #
 ######################################################################
 
-set -o errexit  # Fail on any error
-set -o nounset  # Unset variables are an error
 
 ######################################################################
 #
@@ -21,6 +19,23 @@ set -o nounset  # Unset variables are an error
 tor_url="https://www.torproject.org/"
 
 wget_args="--no-check-certificate"  # We check gpg signature instead
+
+gpg --version 2>1 > /dev/null
+if test $? -eq 0 ; then
+    gpg=gpg
+else
+    gpg2 --version 2>&1 > /dev/null
+    if test $? -eq 0 ; then
+        gpg=gpg2
+    else
+        echo "Warning: gpg not found"
+    fi
+fi
+
+######################################################################
+
+set -o errexit  # Fail on any error
+set -o nounset  # Unset variables are an error
 
 ######################################################################
 #
@@ -74,7 +89,7 @@ usage()
 check_gpg_keys()
 {
     message "Checking for needed GPG keys"
-    gpg --list-keys ${gpg_key}
+    ${gpg} --list-keys ${gpg_key}
     if [ $? -ne 0 ]; then
         error "Needed GPG key not installed: ${gpg_key}"
     fi
@@ -227,7 +242,7 @@ wget ${wget_args} -O ${signature_file} ${signature_url}
 if test ! -e ${signature_file} ; then
     error "Failed to download bundle signature."
 fi
-gpg --verify ${signature_file} ${bundle}
+${gpg} --verify ${signature_file} ${bundle}
 # We shouldn't need following because errexit is set, but to be safe...
 if [ $? -ne 0 ] ; then
     error "GPG signature check failed."
