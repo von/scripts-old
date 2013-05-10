@@ -66,6 +66,8 @@ install_password_store() {
 
 install_git() {
     ${BREW} install git
+    # tig is curses UI to git: http://jonas.nitro.dk/tig/
+    ${BREW} install tig
 }
 
 install_wget() {
