@@ -23,65 +23,69 @@ SUDO="sudo"
 
 
 install_homebrew() {
-    # http://mxcl.github.com/homebrew/
-    ${RUBY} -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+  # http://mxcl.github.com/homebrew/
+  ${RUBY} -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
 }
 
 install_macvim() {
-    # Overrides older version that comes with MacOSX
-    ${BREW} install macvim --override-system-vim
+  # Overrides older version that comes with MacOSX
+  ${BREW} install macvim --override-system-vim
 }
 
 install_tmux() {
-    ${BREW} install tmux
-    # https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard
-    ${BREW} install reattach-to-user-namespace --wrap-pbcopy-and-pbpaste
+  ${BREW} install tmux
+  # https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard
+  ${BREW} install reattach-to-user-namespace --wrap-pbcopy-and-pbpaste
 }
 
 install_aquamacs() {
-# http://aquamacs.org/
-# http://www.emacswiki.org/emacs/AquamacsFAQ#toc23
-# Tools->Install Command Line Tools
+  echo "Install AquaMacs from http://aquamacs.org/"
+  echo "Then Commandline tools from Tools->Install Command Line Tools"
+  echo "  (See http://www.emacswiki.org/emacs/AquamacsFAQ#toc23)"
 }
 
 install_python() {
-    ${BREW} install python  # Also installs pip
-    ${PIP} install virtualenv
-    ${PIP} install virtualenvwrapper
-    ${PIP} install swig-python
+  ${BREW} install python  # Also installs pip
+  ${PIP} install virtualenv
+  ${PIP} install virtualenvwrapper
+  ${PIP} install swig-python
 }
 
 install_ipython() {
-    ${PIP} install ipython readline
+  ${PIP} install ipython readline
 }
 
 
 install_keychain() {
-    ${BREW} install keychain
+  ${BREW} install keychain
 }
 
 install_password_store() {
-    ${BREW} install password-store
+  ${BREW} install password-store
 }
 
 install_git() {
-    ${BREW} install git
-    # tig is curses UI to git: http://jonas.nitro.dk/tig/
-    ${BREW} install tig
+  ${BREW} install git
+  # tig is curses UI to git: http://jonas.nitro.dk/tig/
+  ${BREW} install tig
 }
 
 install_wget() {
-    ${BREW} install wget
+  ${BREW} install wget
 }
 
 install_markdown() {
-    ${BREW} install markdown
+  ${BREW} install markdown
 }
 
 install_gpg() {
-    ${BREW} install gpg
+  ${BREW} install gpg
 }
 
+install_xcode() {
+  echo "To install Xcode, visit https://developer.apple.com/xcode/"
+  echo "Note that it is a large download (1.5GB+)."
+}
 
 ######################################################################
 
