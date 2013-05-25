@@ -30,6 +30,11 @@ install_homebrew() {
 install_macvim() {
   # Overrides older version that comes with MacOSX
   ${BREW} install macvim --override-system-vim
+  # TODO: Implement the following
+  # Fix python linkage, see https://bugs.launchpad.net/ultisnips/+bug/1178439
+  # cd /usr/local/Cellar/macvim/7.3-66/MacVim.app/Contents/MacOS/
+  # install_name_tool -change /System/Library/Frameworks/Python.framework/Versions/2.7/Python /usr/local/Cellar/python/2.7.5/Frameworks/Python.framework/Versions/2.7/Python MacVim
+  # install_name_tool -change /System/Library/Frameworks/Python.framework/Versions/2.7/Python /usr/local/Cellar/python/2.7.5/Frameworks/Python.framework/Versions/2.7/Python Vim
 }
 
 install_tmux() {
