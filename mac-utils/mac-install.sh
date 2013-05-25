@@ -19,6 +19,12 @@ SUDO="sudo"
 
 ######################################################################
 #
+# Determine MacOSX version
+
+OSX_VERSION=$(sw_vers | grep ProductVersion | cut -f 2)
+
+######################################################################
+#
 # Install functions
 
 
@@ -88,8 +94,16 @@ install_gpg() {
 }
 
 install_xcode() {
-  echo "To install Xcode, visit https://developer.apple.com/xcode/"
-  echo "Note that it is a large download (1.5GB+)."
+  case $OSX_VERSION in 
+    10.6.*)
+      echo "XCode for Snow Leopard is at: https://connect.apple.com/cgi-bin/WebObjects/MemberSite.woa/wa/getSoftware?bundleID=20792"
+      ;;
+
+    *)
+      echo "To install Xcode, visit https://developer.apple.com/xcode/"
+      echo "Note that it is a large download (1.5GB+)."
+      ;;
+  esac
 }
 
 ######################################################################
