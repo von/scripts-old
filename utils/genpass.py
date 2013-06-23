@@ -58,10 +58,17 @@ def output_stdout(s, args):
     print(s)
     return(0)
 
-def output_pbcopy(s, args):
+def output_clipboard(s, args):
     """Output to paste buffer"""
     output("Putting passphrase/word into paste buffer...")
-    result = envoy.run("pbcopy", data=s)
+    if sys.platform == "darwin":
+        prog="pbcopy"
+    else:
+        prog="xclip -in -verbose -selection clipboard"
+    debug("Invoking {}".format(prog))
+    result = envoy.run(prog, data=s, timeout=1)
+    print(result.command)
+    print(result.history)
     if result.status_code > 0:
         output("Error: " + result.std_err)
         return(1)
@@ -100,7 +107,7 @@ def main(argv=None):
     # Generate password by default
     parser.set_defaults(
         function=pass_word,
-        out_function=output_pbcopy)
+        out_function=output_clipboard)
 
     # Only allow one of debug/quiet mode
     verbosity_group = parser.add_mutually_exclusive_group()
@@ -168,7 +175,9 @@ def main(argv=None):
         return(1)
 
     try:
+        debug("Invoking {}".format(str(args.out_function)))
         args.out_function(pass_str, args)
+        debug("Returned from {}".format(str(args.out_function)))
     except Exception as e:
         print("Failed:" + str(e))
         return(1)
