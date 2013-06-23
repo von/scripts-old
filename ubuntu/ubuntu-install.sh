@@ -28,6 +28,7 @@ install_basics()
 	subversion git cvs vim \
 	build-essential \
 	openssh-client \
+	pip \
 	secure-delete \
         zsh
 	"
@@ -160,6 +161,14 @@ install_tbb()  # Tor browser bundle
     fi
 }
 
+install_pip()
+{
+    # Kudos: http://www.saltycrane.com/blog/2010/02/how-install-pip-ubuntu/
+    ${SUDO} ${APT_GET} install python-pip python-dev build-essential
+    ${SUDO} pip install --upgrade pip
+    ${SUDO} pip install --upgrade virtualenv
+}
+
 install_python2_6()
 {
     # Kudos: http://askubuntu.com/a/141664
@@ -174,13 +183,6 @@ install_python2_4()
     ${SUDO} add-apt-repository ppa:fkrull/deadsnakes
     ${SUDO} ${APT_GET} update
     ${SUDO} ${APT_GET} install python2.4 python2.4-dev
-}
-
-install_virtualenv()
-{
-    # Kudos: http://www.youtube.com/watch?v=ViIAAZ4_-aA&noredirect=1
-    ${SUDO} ${APT_GET} python-virtualenv
-    pip install virtualenvwrapper
 }
 
 install_m2crypto()
