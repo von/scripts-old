@@ -25,7 +25,7 @@ install_update()
 install_basics()
 {
     local BASICS="\
-	subversion git cvs vim \
+	subversion git tig cvs vim \
 	build-essential \
 	keychain \
 	openssh-client \
