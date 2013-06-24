@@ -27,8 +27,10 @@ install_basics()
     local BASICS="\
 	subversion git cvs vim \
 	build-essential \
+	keychain \
 	openssh-client \
-	pip \
+	pass \
+        pineentry-curses \
 	secure-delete \
         zsh
 	"
@@ -55,8 +57,6 @@ install_guis()
     local GUI_INSTALLS="\
 	emacs \
 	keepassx \
-	keychain \
-	pass \
 	"
     ${INSTALL} ${GUI_INSTALLS}
 }
