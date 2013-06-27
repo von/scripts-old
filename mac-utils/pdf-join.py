@@ -43,8 +43,6 @@ def main(argv=None):
     if len(pdfs) == 0:
         parser.error("Must supply PDF filename to join")
 
-    print "Joining: " + ",".join(pdfs)
-
     retcode = subprocess.call(
         [PYTHON, PDF_JOIN, "-o", args.output] + pdfs,
         # Clear environment as PYTHONPATH will confuse join.py
