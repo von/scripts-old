@@ -27,14 +27,26 @@ def main(argv=None):
         # To have --help print defaults with trade-off it changes
         # formatting, use: ArgumentDefaultsHelpFormatter
         )
+    parser.add_argument("-i", "--input", type=file,
+                        metavar="PATH",
+                        help="File specifying files to join")
     parser.add_argument("-o", "--output", type=str, required=True,
                         metavar="PATH", help="Output file path")
-    parser.add_argument('pdfs', metavar='paths', type=str, nargs='+',
+    parser.add_argument('pdfs', metavar='paths', type=str, nargs='?',
                         help="paths to PDFs to join")
     args = parser.parse_args()
 
+    pdfs = args.pdfs if args.pdfs else []
+    if args.input:
+        pdfs.extend([f.strip() for f in args.input.readlines()])
+
+    if len(pdfs) == 0:
+        parser.error("Must supply PDF filename to join")
+
+    print "Joining: " + ",".join(pdfs)
+
     retcode = subprocess.call(
-        [PYTHON, PDF_JOIN, "-o", args.output] + args.pdfs,
+        [PYTHON, PDF_JOIN, "-o", args.output] + pdfs,
         # Clear environment as PYTHONPATH will confuse join.py
         env={})
 
