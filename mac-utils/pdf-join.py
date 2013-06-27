@@ -33,10 +33,10 @@ def main(argv=None):
                         help="paths to PDFs to join")
     args = parser.parse_args()
 
-    retcode = subprocess.call([PYTHON, PDF_JOIN, "-o", args.output] + args.pdfs,
-                              # Clear environment as PYTHONPATH will confuse
-                              # join.py
-                              env={})
+    retcode = subprocess.call(
+        [PYTHON, PDF_JOIN, "-o", args.output] + args.pdfs,
+        # Clear environment as PYTHONPATH will confuse join.py
+        env={})
 
     return(retcode)
 
