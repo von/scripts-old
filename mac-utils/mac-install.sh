@@ -102,6 +102,7 @@ install_xcode() {
     *)
       echo "To install Xcode, visit https://developer.apple.com/xcode/"
       echo "Note that it is a large download (1.5GB+)."
+      echo "To install command line tools: See Preferences/Downloads as described at http://stackoverflow.com/a/9329325"
       ;;
   esac
 }
