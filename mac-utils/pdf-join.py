@@ -32,7 +32,7 @@ def main(argv=None):
                         help="File specifying files to join")
     parser.add_argument("-o", "--output", type=str, required=True,
                         metavar="PATH", help="Output file path")
-    parser.add_argument('pdfs', metavar='paths', type=str, nargs='?',
+    parser.add_argument('pdfs', metavar='paths', type=str, nargs='*',
                         help="paths to PDFs to join")
     args = parser.parse_args()
 
