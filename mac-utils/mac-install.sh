@@ -107,6 +107,11 @@ install_xcode() {
   esac
 }
 
+install_brew_upgrade() {
+  ${BREW} update
+  ${BREW} upgrade
+}
+
 ######################################################################
 
 if test $# -eq 0 ; then
