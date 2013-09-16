@@ -115,7 +115,12 @@ if test $# -eq 0 ; then
 fi
 
 for target in $* ; do
-    install_${target}
+    if test ${target} == "help" ; then
+        echo "Commands:"
+        typeset -F | cut -d " " -f 3 | grep install_ | sed -e "s/^install_/  /"
+    else
+        install_${target}
+    fi
 done
 
 exit 0
