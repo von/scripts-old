@@ -67,8 +67,6 @@ def output_clipboard(s, args):
         prog="xclip -in -verbose -selection clipboard"
     debug("Invoking {}".format(prog))
     result = envoy.run(prog, data=s, timeout=1)
-    print(result.command)
-    print(result.history)
     if result.status_code > 0:
         output("Error: " + result.std_err)
         return(1)
