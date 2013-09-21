@@ -90,7 +90,11 @@ install_markdown() {
 }
 
 install_gpg() {
-  ${BREW} install gpg
+  install_gpg2
+}
+
+install_gpg2() {
+  ${BREW} install gpg2
 }
 
 install_xcode() {
