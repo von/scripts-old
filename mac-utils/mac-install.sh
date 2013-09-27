@@ -66,6 +66,13 @@ install_ipython() {
   ${PIP} install ipython readline
 }
 
+# http://ipython.org/ipython-doc/stable/interactive/notebook.html
+install_ipython_notebook() {
+  install_ipython
+  ${PIP} install pyzmq
+  ${PIP} install tornado
+  ${PIP} install Jinja2
+}
 
 install_keychain() {
   ${BREW} install keychain
