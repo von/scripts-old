@@ -22,6 +22,11 @@ install_update()
     ${APT_GET} dist-upgrade
 }
 
+install_clean()
+{
+    ${APT_GET} autoremove
+}
+
 install_basics()
 {
     local BASICS="\
