@@ -101,6 +101,7 @@ install_gpg() {
 }
 
 install_gpg2() {
+  # Should also install gpg-agent
   ${BREW} install gpg2
 }
 
