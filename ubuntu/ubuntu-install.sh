@@ -30,7 +30,7 @@ install_clean()
 install_basics()
 {
     local BASICS="\
-	subversion git tig cvs vim \
+	subversion git tig cvs \
 	build-essential \
 	keychain \
 	openssh-client \
@@ -214,6 +214,11 @@ install_w32codecs()
 {
   install_medibuntu
   ${SUDO} apt-get install w32codecs
+}
+
+install_vim()
+{
+  echo "To install vim follow directions at https://github.com/Valloric/YouCompleteMe/wiki/Building-Vim-from-source"
 }
 
 if test $# -eq 0 ; then
