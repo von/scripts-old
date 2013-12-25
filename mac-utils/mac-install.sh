@@ -34,6 +34,21 @@ install_homebrew() {
   ${BREW} doctor
 }
 
+install_default() {
+  # Install all the stuff normally want
+  install_brew_upgrade
+  install_tmux
+  install_python
+  install_ipython
+  install_ipython_notebook
+  install_macvim  # After python
+  install_keychain
+  install_password_store
+  install_git
+  install_wget
+  install_markdown
+} 
+
 install_macvim() {
   # Overrides older version that comes with MacOSX
   ${BREW} install macvim --override-system-vim
