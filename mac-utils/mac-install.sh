@@ -111,6 +111,7 @@ install_gpg() {
 install_gpg2() {
   # Should also install gpg-agent
   ${BREW} install gpg2
+  echo "Also install https://gpgtools.org/ for Apple mail interface."
 }
 
 install_xcode() {
