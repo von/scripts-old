@@ -87,7 +87,7 @@ install_keychain() {
 }
 
 install_password_store() {
-  ${BREW} install password-store
+  ${BREW} install pass
 }
 
 install_git() {
