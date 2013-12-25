@@ -116,6 +116,17 @@ install_gpg2() {
 
 install_xcode() {
   case $OSX_VERSION in 
+    10.9.*)
+      # Kudos: http://www.computersnyou.com/2025/2013/06/install-command-line-tools-in-osx-10-9-mavericks-how-to/
+      echo "Trying to update xcode"
+      xcode-select --install
+      if test $? -eq 0 ; then
+        echo "Apparent success, follow directions in dialog."
+      else
+        echo "Failed."
+      fi
+      ;;
+
     10.6.*)
       echo "XCode for Snow Leopard is at: https://connect.apple.com/cgi-bin/WebObjects/MemberSite.woa/wa/getSoftware?bundleID=20792"
       ;;
