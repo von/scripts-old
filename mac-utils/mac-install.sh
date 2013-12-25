@@ -29,8 +29,9 @@ OSX_VERSION=$(sw_vers | grep ProductVersion | cut -f 2)
 
 
 install_homebrew() {
-  # http://mxcl.github.com/homebrew/
-  ${RUBY} -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+  # http://brew.sh
+  ${RUBY} -e "$(curl -fsSL https://raw.github.com/Homebrew/homebrew/go)"
+  ${BREW} doctor
 }
 
 install_macvim() {
