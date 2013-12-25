@@ -67,7 +67,7 @@ install_python() {
   ${BREW} install python  # Also installs pip
   ${PIP} install virtualenv
   ${PIP} install virtualenvwrapper
-  ${PIP} install swig-python
+  ${BREW} install swig
 }
 
 install_ipython() {
