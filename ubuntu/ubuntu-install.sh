@@ -66,12 +66,19 @@ install_guis()
     ${INSTALL} ${GUI_INSTALLS}
 }
 
+# https://help.ubuntu.com/community/RestrictedFormats/PlayingDVDs
+install_libdvdcss()
+{
+    ${APT_GET} install libdvdread4
+    ${SUDO} /usr/share/doc/libdvdread4/install-css.sh
+    echo "Note: Reboot may be required."
+}
+
+
 # Kudos: http://www.gaggl.com/2011/05/install-handbrake-on-ubuntu-11-04-natty/
 install_handbrake()
 {
-    ${INSTALL} ubuntu-restricted-extras
-    ${SUDO} /usr/share/doc/libdvdread4/install-css.sh
-    ${SUDO} add-apt-repository ppa:stebbins/handbrake-releases
+    install_libdvdcss
     ${APT_GET} update
     ${INSTALL} handbrake-gtk handbrake-cli
 }
