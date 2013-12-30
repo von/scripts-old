@@ -30,7 +30,7 @@ OSX_VERSION=$(sw_vers | grep ProductVersion | cut -f 2)
 
 install_homebrew() {
   # http://brew.sh
-  ${RUBY} -e "$(curl -fsSL https://raw.github.com/Homebrew/homebrew/go)"
+  ${RUBY} -e "$(curl -fsSL https://raw.github.com/Homebrew/homebrew/go/install)"
   ${BREW} doctor
 }
 
