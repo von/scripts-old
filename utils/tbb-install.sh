@@ -173,11 +173,11 @@ sys=$(uname)
 debug "System type is ${sys}"
 case "${sys}" in
     Darwin)
-        bundle_prefix="TorBrowser-"
-        bundle_suffix="-osx-i386-en-US.zip"
-        bundle_path="/dist/torbrowser/osx/"
+        bundle_prefix="TorBrowserBundle-"
+        bundle_suffix="-osx32_en-US.zip"
+        bundle_path="/dist/torbrowser/"
         install_root="/Applications/"
-        unpacked_bundle="TorBrowser_en-US.app/"
+        unpacked_bundle="TorBrowserBundle_en-US.app/"
         install_path=${install_root}${unpacked_bundle}
         version_file=${install_path}"/VERSION"
         gpg_key="0x63FEE659"
@@ -186,7 +186,7 @@ case "${sys}" in
     Linux)
         bundle_prefix="tor-browser-gnu-linux-x86_64-"
         bundle_suffix="-dev-en-US.tar.gz"
-        bundle_path="/dist/torbrowser/linux/"
+        bundle_path="/dist/torbrowser/"
         install_root="/usr/local/"
         unpacked_bundle="tor-browser_en-US/"
         install_path=${install_root}${unpacked_bundle}
@@ -228,7 +228,7 @@ bundle=${bundle_prefix}${latest_version}${bundle_suffix}
 tmp_dir=$(mktemp -d /tmp/tbb-install.XXXXXX)
 debug "Temporary working directory is ${tmp_dir}"
 cd ${tmp_dir}
-bundle_url=${tor_url}${bundle_path}${bundle}
+bundle_url=${tor_url}${bundle_path}/${latest_version}/${bundle}
 message "Downloading bundle from ${bundle_url}"
 wget ${wget_args} -O ${bundle} ${bundle_url}
 if test ! -e ${bundle} ; then
@@ -237,7 +237,7 @@ fi
 
 message "Checking GPG signature"
 signature_file=${bundle}.asc
-signature_url=${tor_url}${bundle_path}${signature_file}
+signature_url=${tor_url}${bundle_path}/${latest_version}/${signature_file}
 wget ${wget_args} -O ${signature_file} ${signature_url}
 if test ! -e ${signature_file} ; then
     error "Failed to download bundle signature."
