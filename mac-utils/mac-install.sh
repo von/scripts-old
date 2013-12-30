@@ -25,6 +25,27 @@ OSX_VERSION=$(sw_vers | grep ProductVersion | cut -f 2)
 
 ######################################################################
 #
+# Helper functions
+
+brew_installed() {
+  # Return 0 if forumular installed, 1 otherwise
+  # Arguments: forumula
+  _formula=${1}
+  ${BREW} list ${_formula} >/dev/null 2>&1 || return 0
+  return 1
+}
+
+brew_install() {
+  # Install formula if not already installed
+  # Arguments: forumla [<options>]
+  _formula=$1
+  brew_installed ${_formula} && \
+    { echo "${_formula} already installed." ; return ; }
+  ${BREW} install ${_formula} "${@}"
+}
+
+######################################################################
+#
 # Install functions
 
 
@@ -51,7 +72,8 @@ install_default() {
 
 install_macvim() {
   # Overrides older version that comes with MacOSX
-  ${BREW} install macvim --override-system-vim
+  brew_installed macvim && { echo "macvim already installed" ; return 0 ; }
+  brew_install macvim --override-system-vim
   # TODO: Implement the following
   echo "Fixing python linkage"
   # See https://bugs.launchpad.net/ultisnips/+bug/1178439
@@ -67,9 +89,9 @@ install_macvim() {
 }
 
 install_tmux() {
-  ${BREW} install tmux
+  brew_install tmux
   # https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard
-  ${BREW} install reattach-to-user-namespace --wrap-pbcopy-and-pbpaste
+  brew_install reattach-to-user-namespace --wrap-pbcopy-and-pbpaste
 }
 
 install_aquamacs() {
@@ -79,10 +101,10 @@ install_aquamacs() {
 }
 
 install_python() {
-  ${BREW} install python  # Also installs pip
+  brew_install python  # Also installs pip
   ${PIP} install virtualenv
   ${PIP} install virtualenvwrapper
-  ${BREW} install swig
+  brew_install swig
 }
 
 install_ipython() {
@@ -98,25 +120,25 @@ install_ipython_notebook() {
 }
 
 install_keychain() {
-  ${BREW} install keychain
+  brew_install keychain
 }
 
 install_password_store() {
-  ${BREW} install pass
+  brew_install pass
 }
 
 install_git() {
-  ${BREW} install git
+  brew_install git
   # tig is curses UI to git: http://jonas.nitro.dk/tig/
-  ${BREW} install tig
+  brew_install tig
 }
 
 install_wget() {
-  ${BREW} install wget
+  brew_install wget
 }
 
 install_markdown() {
-  ${BREW} install markdown
+  brew_install markdown
 }
 
 install_gpg() {
@@ -125,7 +147,7 @@ install_gpg() {
 
 install_gpg2() {
   # Should also install gpg-agent
-  ${BREW} install gpg2
+  brew_install gpg2
   echo "Also install https://gpgtools.org/ for Apple mail interface."
 }
 
