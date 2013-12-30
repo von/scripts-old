@@ -20,7 +20,7 @@ tor_url="https://www.torproject.org/"
 
 wget_args="--no-check-certificate"  # We check gpg signature instead
 
-gpg --version 2>1 > /dev/null
+gpg --version 2>&1 > /dev/null
 if test $? -eq 0 ; then
     gpg=gpg
 else
