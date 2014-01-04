@@ -102,6 +102,8 @@ install_aquamacs() {
 
 install_python() {
   brew_install python  # Also installs pip
+  # Graphical debugger: https://pypi.python.org/pypi/pudb
+  ${PIP} install pudb
   ${PIP} install virtualenv
   ${PIP} install virtualenvwrapper
   brew_install swig
