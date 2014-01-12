@@ -113,6 +113,22 @@ install_module mock
 # http://www.python-requests.org/
 install_module requests
 
+# path.py - wrapper for os,path
+# https://pypi.python.org/pypi/path.py
+install_module path.py
+
+# watchdog - library and shell utilities to monitor file system events.
+# http://pythonhosted.org/watchdog/
+install_module watchdog
+
+# dateutil - provides powerful extensions to the standard datetime module
+# http://labix.org/python-dateutil
+install_module python-dateutil
+
+# structlog - structured logging
+# http://www.structlog.org/
+install_module structlog
+
 ######################################################################
 
 echo "Success."
