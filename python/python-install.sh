@@ -129,6 +129,10 @@ install_module python-dateutil
 # http://www.structlog.org/
 install_module structlog
 
+# BeautifulSoup - HTML/XML parsing
+# http://www.crummy.com/software/BeautifulSoup/
+install_module beautifulsoup4
+
 ######################################################################
 
 echo "Success."
