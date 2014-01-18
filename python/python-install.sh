@@ -133,6 +133,11 @@ install_module structlog
 # http://www.crummy.com/software/BeautifulSoup/
 install_module beautifulsoup4
 
+# CommonRegex - Find all times, dates, links, phone numbers, emails, ip
+# addresses, prices, hex colors, and credit card numbers in a string.
+# https://github.com/madisonmay/CommonRegex
+install_module commonregex
+
 ######################################################################
 
 echo "Success."
