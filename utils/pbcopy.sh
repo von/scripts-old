@@ -11,7 +11,7 @@
 _pbcopy=/usr/bin/pbcopy  # XXX Determine dynamically
 
 if test -n "${TMUX}" -a $(uname) = "Darwin" ; then
-    exec reattach-to-user-namespace ${_pbcopy}
+    exec reattach-to-user-namespace ${_pbcopy} "$@"
 else
-    exec ${_pbcopy}
+    exec ${_pbcopy} "$@"
 fi

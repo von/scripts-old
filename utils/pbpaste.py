@@ -11,7 +11,7 @@
 _pbpaste=/usr/bin/pbpaste  # XXX Determine dynamically
 
 if test -n "${TMUX}" -a $(uname) = "Darwin" ; then
-    exec reattach-to-user-namespace ${_pbpaste}
+    exec reattach-to-user-namespace ${_pbpaste} "$@"
 else
-    exec ${_pbpaste}
+    exec ${_pbpaste} "$@"
 fi
