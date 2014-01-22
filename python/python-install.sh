@@ -138,6 +138,10 @@ install_module beautifulsoup4
 # https://github.com/madisonmay/CommonRegex
 install_module commonregex
 
+# Cliff - framework for CLI programs with sub-commands.
+# https://cliff.readthedocs.org/
+install_module cliff
+
 ######################################################################
 
 echo "Success."
