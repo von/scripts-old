@@ -142,6 +142,10 @@ install_module commonregex
 # https://cliff.readthedocs.org/
 install_module cliff
 
+# pyCLI - framework for simple CLI programs without sub-commands
+# http://pythonhosted.org/pyCLI/
+install_module pyCLI
+
 ######################################################################
 
 echo "Success."
