@@ -87,11 +87,23 @@ install_module pyzmq tornado Jinja2
 
 ######################################################################
 
-echo "Installing frequently used modules"
+echo "Installing modules I have found useful"
 
 # Graphical debugger
 # https://pypi.python.org/pypi/pudb
 install_module pudb
+
+# Cliff - framework for CLI programs with sub-commands.
+# https://cliff.readthedocs.org/
+install_module cliff
+
+# pyCLI - framework for simple CLI programs without sub-commands
+# http://pythonhosted.org/pyCLI/
+install_module pyCLI
+
+######################################################################
+
+echo "Installing modules that look useful"
 
 # Subprocess interace
 # http://amoffat.github.io/sh/
@@ -137,15 +149,6 @@ install_module beautifulsoup4
 # addresses, prices, hex colors, and credit card numbers in a string.
 # https://github.com/madisonmay/CommonRegex
 install_module commonregex
-
-# Cliff - framework for CLI programs with sub-commands.
-# https://cliff.readthedocs.org/
-install_module cliff
-
-# pyCLI - framework for simple CLI programs without sub-commands
-# http://pythonhosted.org/pyCLI/
-install_module pyCLI
-
 ######################################################################
 #
 # Modules to try
