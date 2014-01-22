@@ -147,6 +147,13 @@ install_module cliff
 install_module pyCLI
 
 ######################################################################
+#
+# Modules to try
+
+# Faker is a Python package that generates fake data for you.
+# https://github.com/joke2k/faker
+
+######################################################################
 
 echo "Success."
 exit 0
