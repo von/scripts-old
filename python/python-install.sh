@@ -101,6 +101,10 @@ install_module cliff
 # http://pythonhosted.org/pyCLI/
 install_module pyCLI
 
+# ProgressBar - CLI progress bar
+# https://code.google.com/p/python-progressbar/
+install_module progressbar
+
 ######################################################################
 
 echo "Installing modules that look useful"
