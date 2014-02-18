@@ -68,6 +68,7 @@ install_default() {
   install_git
   install_wget
   install_markdown
+  install_ctags
 } 
 
 install_macvim() {
@@ -144,6 +145,11 @@ install_markdown() {
   brew_install markdown
 }
 
+install_ctags() {
+  # ctags.sourceforge.net
+  # Needed for majutsushi/tagbar in vim
+  brew install ctags-exuberant
+}
 install_gpg() {
   install_gpg2
 }
