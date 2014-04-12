@@ -103,12 +103,6 @@ class TBBInstallation(object):
         """Return True if installation exists."""
         return self.path.exists()
 
-    def move_aside(self):
-        """Move installation aside to make way for new one"""
-        new_path = self.path.normpath() + ".OLD"
-        subprocess.check_call(["/usr/bin/sudo", "mv", self.path, new_path])
-        self.path = new_path
-
     def version(self):
         """Return version of installed application
 
@@ -158,11 +152,11 @@ class TBBInstaller(object):
         unpacked_bundle = self.unpack_bundle(bundle_path)
         install = TBBInstallation(target_path)
         if install.exists():
-            install.move_aside()
-            install = TBBInstallation(target_path)
-        subprocess.check_call(["/usr/bin/sudo", "mv",
-                               str(unpacked_bundle),
-                               str(install.path)])
+            new_path = install.normpath() + ".OLD"
+            self.as_root(["mv", install.normpath(), new_path])
+        self.as_root(["mv",
+                      str(unpacked_bundle),
+                      str(install.path)])
         return TBBInstallation(target_path)
 
     def unpack_bundle(self, bundle_path):
@@ -196,6 +190,13 @@ class TBBInstaller(object):
             zf.extract(file)
             pbar.update(extracted_size)
         pbar.finish()
+
+    @staticmethod
+    def as_root(cmdargs):
+        """Run a command as root"""
+        # Can't do this with the sh module as it hangs if sudo needs
+        # a password.
+        subprocess.check_call(["/usr/bin/sudo"] + cmdargs)
 
 ######################################################################
 
