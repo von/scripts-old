@@ -80,6 +80,12 @@ class SystemConfiguration(object):
     }
 
     def __init__(self, platform=None):
+        """Initialize platform-specific configuration
+
+        :param platform: Patform to use for configuration
+            Default: sys.platform
+        :raises KeyError: Unknown platform
+        """
         platform = platform if platform else sys.platform
         try:
             self.params = self._params[platform]
@@ -87,6 +93,11 @@ class SystemConfiguration(object):
             raise KeyError("Unknown platform '{}'".format(platform))
 
     def __getitem__(self, name):
+        """Return configuration item
+
+        :param name: Item name
+        :raises KeyError: Unknown item
+        """
         return self.params[name]
 
 ######################################################################
@@ -175,6 +186,8 @@ class TBBInstaller(object):
 
         :param bundle_path: path to bundle to unpack
         :returns: path to unpacked bundle
+        :raises NotImplementedError: Unknown file extension on bundle
+        :raises RunTimeError: Unpacking errors
         """
         tmp_dir = tempfile.mkdtemp()
         os.chdir(tmp_dir)
@@ -238,6 +251,8 @@ class TorWebSite(object):
         """Return information on bundle from Tor website
 
         :returns: Tuple of (bundle URL, signature URL, version)
+        :raises requests.exceptions.HTTPError: Download error
+        :raises RunTimeError: Could not find link for bundle
         """
         r = requests.get(self.base_url + "projects/torbrowser.html.en")
         r.raise_for_status()
@@ -330,13 +345,19 @@ class TBBInstallApp(cli.app.CommandLineApp):
 
     # Our functions
     def check_params(self):
-        """Check commandline arguments"""
+        """Check commandline arguments
+
+        :raises RuntimeError: Fault with arguments
+        """
         if self.params.debug and self.params.quiet:
             raise RuntimeError(
                 "Debug (-d) and quiet (-q) modes are incompatible.")
 
     def check_gpg(self):
-        """Set self.gpg or raise exception if gpg cannot be found"""
+        """Set self.gpg or raise exception if gpg cannot be found
+
+        :raises RuntimeError: Cannot find GPG executable or key
+        """
         self.debug("Finding gpg binary")
         try:
             from sh import gpg
@@ -361,6 +382,7 @@ class TBBInstallApp(cli.app.CommandLineApp):
 
         :param bundle_path: path to bundle file
         :param signature_path: path to signature file
+        :raises RuntimeError: Signature verification failed
         """
         output = self.gpg("--verify", signature_path, bundle_path)
         if output.exit_code != 0:
