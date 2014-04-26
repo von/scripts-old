@@ -100,14 +100,17 @@ class TBBInstallation(object):
             else path(self.config["path"])
 
     def exists(self):
-        """Return True if installation exists."""
+        """Check to see if installation exists.
+
+        :returns: True if installation exists.
+        """
         return self.path.exists()
 
     def version(self):
         """Return version of installed application
 
-        Returns a distutils.version.StrictVersion instance
-        or None if not installed or version unknown."""
+        :returns: StrictVersion instance or None on error.
+        """
         version_path = self.version_file_path
         if not version_path.exists():
             return None
@@ -125,13 +128,17 @@ class TBBInstallation(object):
     def set_version(self, version):
         """Set version of installation to given version
 
-        version as a distutils.version.StrictVersion instance."""
+        :param version: a distutils.version.StrictVersion instance.
+        """
         version_path = self.version_file_path
         version_path.write_lines([str(version)])
 
     @property
     def version_file_path(self):
-        """Return path object representing version file."""
+        """Return path to file containing version information
+
+        :returns: Path as path instance
+        """
         return self.path / "VERSION"
 
 ######################################################################
@@ -140,16 +147,20 @@ class TBBInstallation(object):
 class TBBInstaller(object):
     """Install a downloaded bundle."""
 
-    def __init__(self, target_path=None):
+    def __init__(self):
+        """Initialize a TBBInstaller"""
         self.config = SystemConfiguration()
-        self.path = path(target_path) if target_path \
-            else path(self.config["path"])
 
     def install_bundle(self, bundle_path, target_path=None):
         """Create new installation from bundle.
 
-        Returns TBBInstallation instance."""
+        :param bundle_path: Path to bundle to install from
+        :param target_path: Path to install to (will install
+            to system default)
+        """
         unpacked_bundle = self.unpack_bundle(bundle_path)
+        target_path = path(target_path) if target_path \
+            else path(self.config["path"])
         install = TBBInstallation(target_path)
         if install.exists():
             new_path = install.normpath() + ".OLD"
@@ -160,7 +171,11 @@ class TBBInstaller(object):
         return TBBInstallation(target_path)
 
     def unpack_bundle(self, bundle_path):
-        """Unpack bundle based on its file extension."""
+        """Unpack bundle based on its file extension.
+
+        :param bundle_path: path to bundle to unpack
+        :returns: path to unpacked bundle
+        """
         tmp_dir = tempfile.mkdtemp()
         os.chdir(tmp_dir)
         if bundle_path.endswith(".zip"):
@@ -177,7 +192,10 @@ class TBBInstaller(object):
         return unpacked_bundle
 
     def unzip_bundle(self, bundle_path):
-        """Unpack zipped bundle"""
+        """Unpack zipped bundle
+
+        :param bundle_path: path to bundle to unzip
+        """
         import zipfile
         zf = zipfile.ZipFile(bundle_path)
         uncompressed_size = sum((file.file_size for file in zf.infolist()))
@@ -193,7 +211,10 @@ class TBBInstaller(object):
 
     @staticmethod
     def as_root(cmdargs):
-        """Run a command as root"""
+        """Run a command as root
+
+        :param cmdargs: List of arguments to execute
+        """
         # Can't do this with the sh module as it hangs if sudo needs
         # a password.
         subprocess.check_call(["/usr/bin/sudo"] + cmdargs)
@@ -202,15 +223,22 @@ class TBBInstaller(object):
 
 
 class TorWebSite(object):
+    """Representation of Tor website"""
 
     def __init__(self, base_url="https://www.torproject.org/"):
+        """Create instance of Tor web site
+
+        :param base_url: URL of web site
+            (Default: https://www.torproject.org/)
+        """
         self.base_url = base_url
         self.config = SystemConfiguration()
 
     def get_bundle_info(self):
-        """Return (bundle URL, signature URL, version) for bundle.
+        """Return information on bundle from Tor website
 
-        Returns version as a distutils.version.StrictVersion instance."""
+        :returns: Tuple of (bundle URL, signature URL, version)
+        """
         r = requests.get(self.base_url + "projects/torbrowser.html.en")
         r.raise_for_status()
         soup = BeautifulSoup(r.text)
@@ -233,12 +261,17 @@ class TorWebSite(object):
 
 
 class TBBInstallApp(cli.app.CommandLineApp):
+    """TBB installation and maintenance application"""
 
     bundle_signing_gpg_key = "0x63FEE659"
 
     # Functions part of CommandLineApp API
 
     def main(self):
+        """Main entry point for application
+
+        :returns: Application return value (non-zero on error)
+        """
         self.debug("main() entered")
         self.check_params()
         self.check_gpg()
@@ -284,6 +317,7 @@ class TBBInstallApp(cli.app.CommandLineApp):
         return 0
 
     def setup(self):
+        """Set up application prior to calling main()"""
         # Calling superclass creates argparser
         # Kudos: http://stackoverflow.com/a/12387762/197789
         super(cli.app.CommandLineApp, self).setup()
@@ -296,7 +330,7 @@ class TBBInstallApp(cli.app.CommandLineApp):
 
     # Our functions
     def check_params(self):
-        """Check params"""
+        """Check commandline arguments"""
         if self.params.debug and self.params.quiet:
             raise RuntimeError(
                 "Debug (-d) and quiet (-q) modes are incompatible.")
@@ -323,7 +357,11 @@ class TBBInstallApp(cli.app.CommandLineApp):
                     self.bundle_signing_gpg_key))
 
     def check_gpg_signature(self, bundle_path, signature_path):
-        """Check signature for bundle"""
+        """Check signature for bundle
+
+        :param bundle_path: path to bundle file
+        :param signature_path: path to signature file
+        """
         output = self.gpg("--verify", signature_path, bundle_path)
         if output.exit_code != 0:
             raise RuntimeError("Signature check on bundle failed")
@@ -333,10 +371,13 @@ class TBBInstallApp(cli.app.CommandLineApp):
     def download_file(self, url, show_progress=True):
         """Download file at given URL.
 
-        Show progress if show_progress is True.
-
         Creates temporary directory to hold file.
-        Returns full path to downloaded file."""
+
+        :param url: Url to file to download
+        :param show_progress: Show progress if show_progress is True.
+            (Default value = True)
+        :returns: Path to downloaded file.
+        """
         # Kudos: http://stackoverflow.com/a/16696317/197789
         head = requests.head(url)
         try:
@@ -367,17 +408,26 @@ class TBBInstallApp(cli.app.CommandLineApp):
         return local_filename
 
     def debug(self, msg):
-        """Print a debug message"""
+        """Print a debug message
+
+        :param msg: string to print
+        """
         if self.params.debug:
             print(msg)
 
     @staticmethod
     def print_error(msg):
-        """Print an error message"""
+        """Print an error message
+
+        :param msg: string to print
+        """
         print(msg, file=sys.stderr)
 
     def print(self, msg):
-        """Print a regular message"""
+        """Print a regular message
+
+        :param msg: string to print
+        """
         if not self.params.quiet:
             print(msg)
 
