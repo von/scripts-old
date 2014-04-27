@@ -125,9 +125,16 @@ class TBBInstallation(object):
         version_path = self.version_file_path
         if not version_path.exists():
             return None
+        version_re = re.compile("TORBROWSER_VERSION=(.*)")
         try:
             with version_path.open() as f:
-                version_string = f.read()
+                for line in f.readlines():
+                    m = version_re.search(line)
+                    if m:
+                        version_string = m.group(1)
+                        break
+                else:
+                    return None
         except IOError:
             return None
         try:
@@ -136,21 +143,13 @@ class TBBInstallation(object):
             return None
         return version
 
-    def set_version(self, version):
-        """Set version of installation to given version
-
-        :param version: a distutils.version.StrictVersion instance.
-        """
-        version_path = self.version_file_path
-        version_path.write_lines([str(version)])
-
     @property
     def version_file_path(self):
         """Return path to file containing version information
 
         :returns: Path as path instance
         """
-        return self.path / "VERSION"
+        return self.path / "Docs/sources/versions"
 
 ######################################################################
 
@@ -327,7 +326,6 @@ class TBBInstallApp(cli.app.CommandLineApp):
         installer = TBBInstaller()
         self.print("Installing to {}".format(installer.path))
         new_installation = installer.install_bundle(bundle_path)
-        new_installation.set_version(latest_version)
         self.print("Success. New install at {}".format(new_installation.path))
         return 0
 
