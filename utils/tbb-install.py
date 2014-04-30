@@ -461,6 +461,8 @@ if __name__ == "__main__":
         app.run()
     except SystemExit as ex:
         sys.exit(ex.code)
+    except KeyboardInterrupt as ex:
+        sys.exit(1)
     except:
         type, value, tb = sys.exc_info()
         traceback.print_exc()
