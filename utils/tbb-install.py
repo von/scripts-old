@@ -326,7 +326,11 @@ class TBBInstallApp(cli.app.CommandLineApp):
         signature_path = path(
             self.download_file(signature_url, show_progress=False))
         self.debug("Downloaded to {}".format(signature_path))
-        self.check_gpg_signature(bundle_path, signature_path)
+        try:
+            self.check_gpg_signature(bundle_path, signature_path)
+        except RuntimeError as ex:
+            self.print_error(ex)
+            return 1
         installer = TBBInstaller()
         self.print("Installing to {}".format(installer.path))
         new_installation = installer.install_bundle(bundle_path)
