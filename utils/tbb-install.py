@@ -290,8 +290,12 @@ class TBBInstallApp(cli.app.CommandLineApp):
         self.check_params()
         self.check_gpg()
         web_site = TorWebSite()
-        download_url, signature_url, latest_version = \
-            web_site.get_bundle_info()
+        try:
+            download_url, signature_url, latest_version = \
+                web_site.get_bundle_info()
+        except RuntimeError as ex:
+            self.print_error(ex)
+            return 1
         self.debug("Latest version is {} at {}".format(latest_version,
                                                        download_url))
         installation = TBBInstallation()
