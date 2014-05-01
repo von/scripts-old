@@ -3,10 +3,12 @@
 
 from __future__ import print_function
 
+import atexit
 from distutils.version import StrictVersion
 import os.path
 import pdb
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -189,6 +191,7 @@ class TBBInstaller(object):
         :raises RunTimeError: Unpacking errors
         """
         tmp_dir = tempfile.mkdtemp()
+        atexit.register(shutil.rmtreee, tmp_dir, ignore_errors=True)
         os.chdir(tmp_dir)
         if bundle_path.endswith(".zip"):
             self.unzip_bundle(bundle_path)
@@ -414,6 +417,7 @@ class TBBInstallApp(cli.app.CommandLineApp):
             # Can't determine size, guess
             size = 25000000
         tmp_dir = tempfile.mkdtemp()
+        atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True)
         local_filename = os.path.join(tmp_dir, url.split('/')[-1])
         r = requests.get(url, stream=True)
         chunk_size = 1024
