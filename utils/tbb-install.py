@@ -326,7 +326,9 @@ class TBBInstallApp(cli.app.CommandLineApp):
         self.debug("Downloaded to {}".format(bundle_path))
         self.debug("Downloading {}".format(signature_url))
         signature_path = path(
-            self.download_file(signature_url, show_progress=False))
+            self.download_file(signature_url,
+                               cache=False,
+                               show_progress=False))
         self.debug("Downloaded to {}".format(signature_path))
         try:
             self.check_gpg_signature(bundle_path, signature_path)
@@ -398,7 +400,7 @@ class TBBInstallApp(cli.app.CommandLineApp):
 
     # Utility functions
 
-    def download_file(self, url, show_progress=True):
+    def download_file(self, url, show_progress=True, cache=True):
         """Download file at given URL.
 
         Creates temporary directory to hold file.
@@ -406,8 +408,16 @@ class TBBInstallApp(cli.app.CommandLineApp):
         :param url: Url to file to download
         :param show_progress: Show progress if show_progress is True.
             (Default value = True)
+        :param cache: Allow for caching of file.
+            (Default value = False)
         :returns: Path to downloaded file.
         """
+        download_dir = self._cache_dir()
+        filename = url.split('/')[-1]
+        local_filename = os.path.join(download_dir, filename)
+        if cache and os.path.exists(local_filename):
+            self.debug("Using cached: {}".format(local_filename))
+            return local_filename
         # Kudos: http://stackoverflow.com/a/16696317/197789
         head = requests.head(url)
         try:
@@ -415,9 +425,6 @@ class TBBInstallApp(cli.app.CommandLineApp):
         except KeyError:
             # Can't determine size, guess
             size = 25000000
-        tmp_dir = tempfile.mkdtemp()
-        atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True)
-        local_filename = os.path.join(tmp_dir, url.split('/')[-1])
         r = requests.get(url, stream=True)
         chunk_size = 1024
         num_chunks = size / chunk_size
@@ -437,6 +444,14 @@ class TBBInstallApp(cli.app.CommandLineApp):
         if show_progress:
             pbar.finish()
         return local_filename
+
+    def _cache_dir(self):
+        cache_dir = \
+            os.path.join(tempfile.gettempdir(),
+                         "tbb-install-cache-{}".format(os.getlogin()))
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir, 0700)
+        return cache_dir
 
     def debug(self, msg):
         """Print a debug message
