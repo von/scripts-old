@@ -76,8 +76,7 @@ class SystemConfiguration(object):
             "path": "/Applications/TorBrowserBundle_en-US.app/",
             "unpacked_bundle": "TorBrowserBundle_en-US.app",
             "bundle_re": re.compile(
-                "TorBrowserBundle-(\d+(\.\d+)*)-osx32_en-US.zip")
-
+                "TorBrowser-(\d+(\.\d+)*)-osx32_en-US.dmg")
         },
     }
 
