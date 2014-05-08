@@ -198,7 +198,7 @@ class TBBInstaller(object):
             sh.tar("xfz", bundle_path)
         else:
             raise NotImplementedError(
-                "Do not know how to unpack {}".format(bundle_path))
+                "Do not know how to unpack {}".format(bundle_path.basename()))
         unpacked_bundle = path(self.config["unpacked_bundle"])
         if not unpacked_bundle.exists():
             raise RuntimeError("Could not find unpacked bundle \"{}\"".
@@ -345,7 +345,11 @@ class TBBInstallApp(cli.app.CommandLineApp):
             return 1
         installer = TBBInstaller()
         self.print("Installing to {}".format(installer.path))
-        new_installation = installer.install_bundle(bundle_path)
+        try:
+            new_installation = installer.install_bundle(bundle_path)
+        except NotImplementedError as ex:
+            self.print_error(ex)
+            return 1
         self.print("Success. New install at {}".format(new_installation.path))
         return 0
 
