@@ -190,7 +190,7 @@ class TBBInstaller(object):
         :raises RunTimeError: Unpacking errors
         """
         tmp_dir = tempfile.mkdtemp()
-        atexit.register(shutil.rmtreee, tmp_dir, ignore_errors=True)
+        atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True)
         os.chdir(tmp_dir)
         if bundle_path.endswith(".zip"):
             self.unzip_bundle(bundle_path)
