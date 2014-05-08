@@ -233,6 +233,14 @@ class TBBInstaller(object):
         # a password.
         subprocess.check_call(["/usr/bin/sudo"] + cmdargs)
 
+    @property
+    def path(self):
+        """Return path installer will install to by default
+
+        :returns: Path as path instance
+        """
+        return path(self.config["path"])
+
 ######################################################################
 
 
