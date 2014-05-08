@@ -335,7 +335,6 @@ class TBBInstallApp(cli.app.CommandLineApp):
         self.debug("Downloading {}".format(signature_url))
         signature_path = path(
             self.download_file(signature_url,
-                               cache=False,
                                show_progress=False))
         self.debug("Downloaded to {}".format(signature_path))
         try:
