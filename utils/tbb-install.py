@@ -346,7 +346,7 @@ class TBBInstallApp(cli.app.CommandLineApp):
         self.print("Installing to {}".format(installer.path))
         try:
             new_installation = installer.install_bundle(bundle_path)
-        except NotImplementedError as ex:
+        except (NotImplementedError, RuntimeError) as ex:
             self.print_error(ex)
             return 1
         self.print("Success. New install at {}".format(new_installation.path))
