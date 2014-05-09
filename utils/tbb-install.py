@@ -193,22 +193,21 @@ class TBBInstaller(object):
         atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True)
         os.chdir(tmp_dir)
         if bundle_path.endswith(".zip"):
-            self.unzip_bundle(bundle_path)
+            unpacked_bundle = self.unzip_bundle(bundle_path)
         elif bundle_path.endswith(".tar.gz"):
-            sh.tar("xfz", bundle_path)
+            unpacked_bundle = sh.tar("xfz", bundle_path)
+        if bundle_path.endswith(".dmg"):
+            unpacked_bundle = self.unpack_dmg(bundle_path)
         else:
             raise NotImplementedError(
                 "Do not know how to unpack {}".format(bundle_path.basename()))
-        unpacked_bundle = path(self.config["unpacked_bundle"])
-        if not unpacked_bundle.exists():
-            raise RuntimeError("Could not find unpacked bundle \"{}\"".
-                               format(unpacked_bundle))
         return unpacked_bundle
 
     def unzip_bundle(self, bundle_path):
         """Unpack zipped bundle
 
         :param bundle_path: path to bundle to unzip
+        :returns unpacked_bundle: path to unpacked bundle
         """
         import zipfile
         zf = zipfile.ZipFile(bundle_path)
@@ -222,6 +221,44 @@ class TBBInstaller(object):
             zf.extract(file)
             pbar.update(extracted_size)
         pbar.finish()
+        unpacked_bundle = path(self.config["unpacked_bundle"])
+        if not unpacked_bundle.exists():
+            raise RuntimeError("Could not find unpacked bundle \"{}\"".
+                               format(unpacked_bundle))
+        return unpacked_bundle
+
+    def untar_bundle(self, bundle_path):
+        """Unpack tarred bundle
+
+        :param bundle_path: path to bundle to unzip
+        :returns unpacked_bundle: path to unpacked bundle
+        """
+        unpacked_bundle = sh.tar("xfz", bundle_path)
+        unpacked_bundle = path(self.config["unpacked_bundle"])
+        if not unpacked_bundle.exists():
+            raise RuntimeError("Could not find unpacked bundle \"{}\"".
+                               format(unpacked_bundle))
+        return unpacked_bundle
+
+    def unpack_dmg(self, bundle_path):
+        """Unpack DMG
+
+        :param bundle_path: path to bundle to unpack
+        :returns unpacked_bundle: path to unpacked bundle
+        """
+        cwd = path.getcwd()
+        mount_info = sh.hdiutil("attach",
+                                "-noverify",  # Avoid output
+                                "-mountroot", cwd,
+                                bundle_path)
+        dev, hint, mount_point = [s.strip() for s in mount_info.split("\t")]
+        atexit.register(sh.hdiutil, "detach", mount_point, "-force")
+        unpacked_bundle = path(mount_point) / \
+            path(self.config["unpacked_bundle"])
+        if not unpacked_bundle.exists():
+            raise RuntimeError("Could not find unpacked bundle \"{}\"".
+                               format(unpacked_bundle))
+        return unpacked_bundle
 
     @staticmethod
     def as_root(cmdargs):
