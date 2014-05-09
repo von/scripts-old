@@ -73,8 +73,8 @@ class SystemConfiguration(object):
     # matching regex
     _params = {
         "darwin": {
-            "path": "/Applications/TorBrowserBundle_en-US.app/",
-            "unpacked_bundle": "TorBrowserBundle_en-US.app",
+            "path": "/Applications/TorBrowser.app/",
+            "unpacked_bundle": "TorBrowser.app",
             "bundle_re": re.compile(
                 "TorBrowser-(\d+(\.\d+)*)-osx32_en-US.dmg")
         },
