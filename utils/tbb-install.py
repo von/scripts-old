@@ -176,7 +176,8 @@ class TBBInstaller(object):
         if install.exists():
             new_path = install.path.normpath() + ".OLD"
             self.as_root(["mv", install.path.normpath(), new_path])
-        self.as_root(["mv",
+        self.as_root(["cp",
+                      "-pR",  # Recursive with attributes
                       str(unpacked_bundle),
                       str(install.path)])
         return TBBInstallation(target_path)
