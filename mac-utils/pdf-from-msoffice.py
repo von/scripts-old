@@ -14,6 +14,7 @@ TEXTUTIL = "textutil"
 
 CONVERT = "/System/Library/Printers/Libraries/convert"
 
+
 def main(argv=None):
     # Do argv default this way, as doing it in the functional
     # declaration sets it at compile time.
@@ -22,12 +23,12 @@ def main(argv=None):
 
     # Argument parsing
     parser = argparse.ArgumentParser(
-        description=__doc__, # printed with -h/--help
+        description=__doc__,  # printed with -h/--help
         # Don't mess with format of description
         formatter_class=argparse.RawDescriptionHelpFormatter,
         # To have --help print defaults with trade-off it changes
         # formatting, use: ArgumentDefaultsHelpFormatter
-        )
+    )
 
     parser.add_argument('srcs', metavar='PATH', type=str, nargs="+",
                         help="Path to source file")
