@@ -58,9 +58,15 @@ def main(argv=None):
             error = True
             continue
 
-        subprocess.check_call([CONVERT,
-                               "-f", tmp_rtf_filename,
-                               "-o", dest_filename])
+        try:
+            subprocess.check_call([CONVERT,
+                                "-f", tmp_rtf_filename,
+                                "-o", dest_filename])
+        except OSError as ex:
+            print "Could not execute {}: {}".format(CONVERT,
+                                                    str(ex))
+            error = True
+            break
 
         os.unlink(tmp_rtf_filename)
         if retcode != 0:
