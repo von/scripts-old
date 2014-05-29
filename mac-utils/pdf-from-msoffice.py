@@ -54,14 +54,15 @@ def main(argv=None):
                                    "-output", tmp_rtf_filename,
                                    src])
         if retcode != 0:
-            print "{}: Failed to convert (to intermediate RTF format)".format(src)
+            print "{}: Failed to convert " \
+                "(to intermediate RTF format)".format(src)
             error = True
             continue
 
         try:
             subprocess.check_call([CONVERT,
-                                "-f", tmp_rtf_filename,
-                                "-o", dest_filename])
+                                   "-f", tmp_rtf_filename,
+                                   "-o", dest_filename])
         except OSError as ex:
             print "Could not execute {}: {}".format(CONVERT,
                                                     str(ex))
