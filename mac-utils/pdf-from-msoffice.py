@@ -12,7 +12,21 @@ import tempfile
 
 TEXTUTIL = "textutil"
 
-CONVERT = "/System/Library/Printers/Libraries/convert"
+
+def rtf2pdf(rtf_filename, pdf_filename):
+    """Convert given rtf file to a pdf file with given name
+
+    Uses cupsfilter - kudos http://stackoverflow.com/a/22119831/197789"""
+    # Prior to Mavericks, I used the following directly
+    # /System/Library/Printers/Libraries/convert
+    p = subprocess.Popen(["cupsfilter", rtf_filename],
+                         stdout=subprocess.PIPE)
+    with open(pdf_filename, "w") as pdf_file:
+        while True:
+            data = p.stdout.read()
+            if len(data) == 0:
+                break
+            pdf_file.write(data)
 
 
 def main(argv=None):
@@ -59,21 +73,8 @@ def main(argv=None):
             error = True
             continue
 
-        try:
-            subprocess.check_call([CONVERT,
-                                   "-f", tmp_rtf_filename,
-                                   "-o", dest_filename])
-        except OSError as ex:
-            print "Could not execute {}: {}".format(CONVERT,
-                                                    str(ex))
-            error = True
-            break
-
+        rtf2pdf(tmp_rtf_filename, dest_filename)
         os.unlink(tmp_rtf_filename)
-        if retcode != 0:
-            print "{}: Failed to convert".format(src)
-            error = True
-            continue
 
         print "{}: Converted to {}".format(src, dest_filename)
 
