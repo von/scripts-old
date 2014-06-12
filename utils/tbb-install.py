@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import atexit
 from distutils.version import StrictVersion
+import getpass
 import os.path
 import pdb
 import re
@@ -179,8 +180,14 @@ class TBBInstaller(object):
                 self.as_root(["rm", "-rf", new_path])
             self.as_root(["mv", install.path.normpath(), new_path])
         self.as_root(["cp",
-                      "-pR",  # Recursive with attributes
+                      "-R",  # Recursive
                       str(unpacked_bundle),
+                      str(install.path)])
+        # Being owned by root creates strange problems opening the
+        # application and "Firefox is already running" errors.
+        self.as_root(["chown",
+                      "-R",
+                      getpass.getuser(),
                       str(install.path)])
         return TBBInstallation(target_path)
 
