@@ -48,16 +48,21 @@ brew_install() {
 #
 # Install functions
 
-
 install_homebrew() {
   # http://brew.sh
   ${RUBY} -e "$(curl -fsSL https://raw.github.com/Homebrew/homebrew/go/install)"
   ${BREW} doctor
 }
 
+install_cask() {
+  # http://caskroom.io/
+  brew_install caskroom/cask/brew-cask
+}
+
 install_default() {
   # Install all the stuff normally want
   install_brew_upgrade
+  install_cask
   install_tmux
   install_python
   install_ipython
