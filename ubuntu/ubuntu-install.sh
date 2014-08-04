@@ -69,7 +69,7 @@ install_guis()
 # https://help.ubuntu.com/community/RestrictedFormats/PlayingDVDs
 install_libdvdcss()
 {
-    ${APT_GET} install libdvdread4
+    ${APT_GET} install libdvdread4 libdvdnav4
     ${SUDO} /usr/share/doc/libdvdread4/install-css.sh
     echo "Note: Reboot may be required."
 }
@@ -79,8 +79,7 @@ install_libdvdcss()
 install_handbrake()
 {
     install_libdvdcss
-    ${APT_GET} update
-    ${INSTALL} handbrake-gtk handbrake-cli
+    ${INSTALL} handbrake handbrake-cli
 }
 
 # Kudos: http://www.liberiangeek.net/2011/12/install-google-chrome-using-apt-get-in-ubuntu-11-10-oneiric-ocelot
