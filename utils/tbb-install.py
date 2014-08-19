@@ -334,6 +334,9 @@ class TorWebSite(object):
 class TBBInstallApp(cli.app.CommandLineApp):
     """TBB installation and maintenance application"""
 
+    # Displayed by help
+    name = "tbb-install"
+
     bundle_signing_gpg_key = "0x63FEE659"
 
     # Functions part of CommandLineApp API
