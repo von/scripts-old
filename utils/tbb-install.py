@@ -339,9 +339,9 @@ class TBBInstallApp(cli.app.CommandLineApp):
     # Functions part of CommandLineApp API
 
     def main(self):
-        """Main entry point for application
+        """Install or update Tor Browser Bundle to most recent version.
 
-        :returns: Application return value (non-zero on error)
+        Returns zero on success, non-zero on error.
         """
         self.debug("main() entered")
         self.check_params()
