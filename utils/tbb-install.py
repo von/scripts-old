@@ -390,18 +390,8 @@ class TBBInstallApp(cli.app.CommandLineApp):
         else:
             self.debug("No installation found.")
         self.print("Installing version {}".format(info.version))
-        self.print("Downloading {}".format(info.url))
-        bundle_path = path(
-            self.download_file(info.url,
-                               show_progress=not self.params.quiet))
-        self.debug("Downloaded to {}".format(bundle_path))
-        self.debug("Downloading {}".format(info.signature_url))
-        signature_path = path(
-            self.download_file(info.signature_url,
-                               show_progress=False))
-        self.debug("Downloaded to {}".format(signature_path))
         try:
-            self.check_gpg_signature(bundle_path, signature_path)
+            bundle_path = self.download_and_check_bundle(info)
         except RuntimeError as ex:
             self.print_error(ex)
             return 1
@@ -475,6 +465,26 @@ class TBBInstallApp(cli.app.CommandLineApp):
             raise RuntimeError("Signature check on bundle failed")
 
     # Utility functions
+
+    def download_and_check_bundle(self, info):
+        """Download bundle and check GPG signature.
+
+        :param info: BundleInfo instance.
+        :returns: path to downloaded bundle.
+        :raises RuntimeError: Signature verification failed
+        """
+        self.print("Downloading {}".format(info.url))
+        bundle_path = path(
+            self.download_file(info.url,
+                               show_progress=not self.params.quiet))
+        self.debug("Downloaded to {}".format(bundle_path))
+        self.debug("Downloading {}".format(info.signature_url))
+        signature_path = path(
+            self.download_file(info.signature_url,
+                               show_progress=False))
+        self.debug("Downloaded to {}".format(signature_path))
+        self.check_gpg_signature(bundle_path, signature_path)
+        return bundle_path
 
     def download_file(self, url, show_progress=True, cache=True):
         """Download file at given URL.
