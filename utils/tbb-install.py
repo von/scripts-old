@@ -308,10 +308,14 @@ class TorWebSite(object):
         """Return information on bundle from Tor website
 
         :returns: BundleInfo instance
-        :raises requests.exceptions.HTTPError: Download error
+        :raises IOError: Error accessing website
         :raises RunTimeError: Could not find link for bundle
         """
-        r = requests.get(self.base_url + "projects/torbrowser.html.en")
+        try:
+            r = requests.get(self.base_url + "projects/torbrowser.html.en")
+        except (requests.exceptions.HTTPError,
+                requests.exceptions.ConnectionError) as ex:
+            raise IOError("Could not access Tor website: " + str(ex))
         r.raise_for_status()
         soup = BeautifulSoup(r.text)
         bundle_re = self.config["bundle_re"]
@@ -361,7 +365,8 @@ class TBBInstallApp(cli.app.CommandLineApp):
         web_site = TorWebSite()
         try:
             info = web_site.get_bundle_info()
-        except RuntimeError as ex:
+        except (IOError,
+                RuntimeError) as ex:
             self.print_error(ex)
             return 1
         self.debug("Latest version is {} at {}".format(info.version,
