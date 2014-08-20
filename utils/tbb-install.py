@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import atexit
+import collections
 from distutils.version import StrictVersion
 import getpass
 import os.path
@@ -306,7 +307,7 @@ class TorWebSite(object):
     def get_bundle_info(self):
         """Return information on bundle from Tor website
 
-        :returns: Tuple of (bundle URL, signature URL, version)
+        :returns: BundleInfo instance
         :raises requests.exceptions.HTTPError: Download error
         :raises RunTimeError: Could not find link for bundle
         """
@@ -325,8 +326,16 @@ class TorWebSite(object):
         # Create full, absolute URL
         url = urlparse.urljoin(r.url, url)
         signature_url = url + ".asc"
-        return (url, signature_url, StrictVersion(m.group(1)))
+        info = BundleInfo(url, StrictVersion(m.group(1)), signature_url)
+        return info
 
+
+######################################################################
+
+BundleInfo = collections.namedtuple("BundlInfo", ["url",
+                                                  "version",
+                                                  "signature_url"
+                                                  ])
 
 ######################################################################
 
@@ -351,19 +360,18 @@ class TBBInstallApp(cli.app.CommandLineApp):
         self.check_gpg()
         web_site = TorWebSite()
         try:
-            download_url, signature_url, latest_version = \
-                web_site.get_bundle_info()
+            info = web_site.get_bundle_info()
         except RuntimeError as ex:
             self.print_error(ex)
             return 1
-        self.debug("Latest version is {} at {}".format(latest_version,
-                                                       download_url))
+        self.debug("Latest version is {} at {}".format(info.version,
+                                                       info.url))
         installation = TBBInstallation()
         if installation.exists():
             installed_version = installation.version()
             if installed_version:
                 self.debug("Installed version: {}".format(installed_version))
-                if not(latest_version > installed_version):
+                if not(info.version > installed_version):
                     self.print(
                         "Installed version ({}) up to date"
                         .format(installed_version))
@@ -376,15 +384,15 @@ class TBBInstallApp(cli.app.CommandLineApp):
                 self.debug("Cannot determine version of installation.")
         else:
             self.debug("No installation found.")
-        self.print("Installing version {}".format(latest_version))
-        self.print("Downloading {}".format(download_url))
+        self.print("Installing version {}".format(info.version))
+        self.print("Downloading {}".format(info.url))
         bundle_path = path(
-            self.download_file(download_url,
+            self.download_file(info.url,
                                show_progress=not self.params.quiet))
         self.debug("Downloaded to {}".format(bundle_path))
-        self.debug("Downloading {}".format(signature_url))
+        self.debug("Downloading {}".format(info.signature_url))
         signature_path = path(
-            self.download_file(signature_url,
+            self.download_file(info.signature_url,
                                show_progress=False))
         self.debug("Downloaded to {}".format(signature_path))
         try:
