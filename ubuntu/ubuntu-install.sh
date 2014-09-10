@@ -35,15 +35,15 @@ install_clean()
 install_basics()
 {
     local BASICS="\
-	subversion git tig cvs \
-	build-essential \
-	keychain \
-	openssh-client \
-	pass \
-        pineentry-curses \
-	secure-delete \
-        zsh
-	"
+      subversion git tig cvs \
+      build-essential \
+      keychain \
+      openssh-client \
+      pass \
+      pineentry-curses \
+      secure-delete \
+      zsh
+    "
     ${INSTALL} ${BASICS}
 }
 
@@ -55,19 +55,19 @@ install_homestuff()
 install_server()
 {
     local SERVER_STUFF="\
-	logwatch \
-	screen tmux \
-	openssh-server \
-	"
+      logwatch \
+      screen tmux \
+      openssh-server \
+    "
     ${INSTALL} ${SERVER_STUFF}
 }
 
 install_guis()
 {
     local GUI_INSTALLS="\
-	emacs \
-	keepassx \
-	"
+      emacs \
+      keepassx \
+    "
     ${INSTALL} ${GUI_INSTALLS}
 }
 
@@ -215,7 +215,7 @@ install_m2crypto()
 
 # Medibuntu (Multimedia, Entertainment & Distractions In Ubuntu) is a
 # repository of packages that cannot be included into the Ubuntu
-# distribution for legal reasons (copyright, license, patent, etc).  
+# distribution for legal reasons (copyright, license, patent, etc).
 # https://help.ubuntu.com/community/Medibuntu
 install_medibuntu()
 {
