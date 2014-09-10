@@ -12,7 +12,7 @@ SUDO="sudo"
 APT_GET="${SUDO} apt-get"
 INSTALL="${APT_GET} install"
 
-if test -f /etc/ls-release ; then
+if test -f /etc/lsb-release ; then
   . /etc/lsb-release
 else
   echo "Doesn't look like Ubuntu. /etc/lsb-release does not exist."
