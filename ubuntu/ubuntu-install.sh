@@ -247,3 +247,4 @@ for target in $* ; do
     install_${target}
 done
 
+exit 0
