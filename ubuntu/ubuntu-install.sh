@@ -79,7 +79,12 @@ install_libdvdcss()
 install_handbrake()
 {
     install_libdvdcss
-    ${INSTALL} handbrake handbrake-cli
+    # Work-around for handbrake brokein in main repo
+    # http://askubuntu.com/a/464895/80562
+    sudo apt-add-repository ppa:stebbins/handbrake-snapshots
+    sudo apt-get update
+    sudo apt-get upgrade
+    ${INSTALL} handbrake-cli
 }
 
 # Kudos: http://www.liberiangeek.net/2011/12/install-google-chrome-using-apt-get-in-ubuntu-11-10-oneiric-ocelot
