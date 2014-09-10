@@ -86,6 +86,7 @@ install_handbrake()
     install_libdvdcss
     # Work-around for handbrake brokein in main repo
     # http://askubuntu.com/a/464895/80562
+    # See also: https://launchpad.net/~stebbins/+archive/ubuntu/handbrake-releases
     sudo apt-add-repository ppa:stebbins/handbrake-snapshots
     sudo apt-get update
     sudo apt-get upgrade
