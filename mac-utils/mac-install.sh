@@ -115,6 +115,11 @@ install_python() {
   brew_install swig
 }
 
+install_python3() {
+  brew_install python3  # Also installs pip3
+  pip3 install --upgrade pip
+}
+
 install_ipython() {
   ${PIP} install ipython readline
 }
