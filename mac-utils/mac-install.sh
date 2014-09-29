@@ -28,10 +28,10 @@ OSX_VERSION=$(sw_vers | grep ProductVersion | cut -f 2)
 # Helper functions
 
 brew_installed() {
-  # Return 0 if forumular installed, 1 otherwise
+  # Return 0 if forumula installed, 1 otherwise
   # Arguments: forumula
   _formula=${1}
-  ${BREW} list ${_formula} >/dev/null 2>&1 || return 0
+  ${BREW} list ${_formula} >/dev/null 2>&1 && return 0
   return 1
 }
 
@@ -78,7 +78,10 @@ install_default() {
 
 install_macvim() {
   # Overrides older version that comes with MacOSX
-  brew_installed macvim && { echo "macvim already installed" ; return 0 ; }
+  if brew_installed macvim ; then
+    echo "macvim already installed"
+    return 0
+  fi
   brew_install macvim --override-system-vim
   # TODO: Implement the following
   echo "Fixing python linkage"
