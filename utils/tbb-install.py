@@ -514,16 +514,19 @@ class TBBInstallApp(cli.app.CommandLineApp):
         try:
             size = int(head.headers["content-length"])
         except KeyError:
-            # Can't determine size, guess
-            size = 25000000
+            size = 0
         r = requests.get(url, stream=True)
         chunk_size = 1024
         num_chunks = size / chunk_size
         chunk_count = 0
         if show_progress:
-            pbar = ProgressBar(widgets=[Percentage(), Bar()],
-                               maxval=num_chunks + 1)
-            pbar.start()
+            if num_chunks > 0:  # Sanity check
+                pbar = ProgressBar(widgets=[Percentage(), Bar()],
+                                maxval=num_chunks + 1)
+                pbar.start()
+            else:
+                self.print("Cannot determine file size. Disabling progress.")
+                show_progress = False
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 if chunk:  # filter out keep-alive new chunks
