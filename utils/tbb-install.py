@@ -460,9 +460,14 @@ class TBBInstallApp(cli.app.CommandLineApp):
         :param signature_path: path to signature file
         :raises RuntimeError: Signature verification failed
         """
-        output = self.gpg("--verify", signature_path, bundle_path)
-        if output.exit_code != 0:
-            raise RuntimeError("Signature check on bundle failed")
+        try:
+            self.gpg("--verify", signature_path, bundle_path)
+        except sh.ErrorReturnCode_1 as ex:
+            raise RuntimeError(
+                "Signature check on bundle failed:\n{}".format(ex.stderr))
+        except sh.ErrorReturnCode as ex:
+            raise RuntimeError(
+                "Unknown error checking signature:\n{}".format(ex.stderr))
 
     # Utility functions
 
