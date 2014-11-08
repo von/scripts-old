@@ -509,34 +509,44 @@ class TBBInstallApp(cli.app.CommandLineApp):
         if cache and os.path.exists(local_filename):
             self.debug("Using cached: {}".format(local_filename))
             return local_filename
+        chunk_size = 1024
         # Kudos: http://stackoverflow.com/a/16696317/197789
         head = requests.head(url)
         try:
             size = int(head.headers["content-length"])
         except KeyError:
             size = 0
+        if size < chunk_size:
+            # Sometimes we a tiny size back, in which case treat it
+            # as an unknown size.
+            size = 0
         r = requests.get(url, stream=True)
-        chunk_size = 1024
-        num_chunks = size / chunk_size
-        chunk_count = 0
+        downloaded = 0
         if show_progress:
-            if num_chunks > 0:  # Sanity check
-                pbar = ProgressBar(widgets=[Percentage(), Bar()],
-                                maxval=num_chunks + 1)
-                pbar.start()
-            else:
-                self.print("Cannot determine file size. Disabling progress.")
-                show_progress = False
+            progress_fmt="\rDownloaded {{}} of {}".format(size if size else "Unknown")
+
+            def progress(downloaded):
+                sys.stdout.write(progress_fmt.format(downloaded))
+                sys.stdout.flush()
+
+            def progress_end():
+                sys.stdout.write("\n")
+        else:
+
+            def progress(downloaded):
+                pass
+
+            def progress_end():
+                pass
+        progress(downloaded)
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 if chunk:  # filter out keep-alive new chunks
                     f.write(chunk)
                     f.flush()
-                    chunk_count += 1
-                    if show_progress:
-                        pbar.update(chunk_count)
-        if show_progress:
-            pbar.finish()
+                    downloaded += len(chunk)
+                    progress(downloaded)
+        progress_end()
         return local_filename
 
     def _cache_dir(self):
