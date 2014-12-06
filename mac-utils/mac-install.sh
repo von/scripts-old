@@ -74,6 +74,7 @@ install_default() {
   install_wget
   install_markdown
   install_ctags
+  install_jrnl
 } 
 
 install_macvim() {
@@ -171,6 +172,11 @@ install_gpg2() {
   # Should also install gpg-agent
   brew_install gpg2
   echo "Also install https://gpgtools.org/ for Apple mail interface."
+}
+
+install_jrnl() {
+  # http://maebert.github.io/jrnl/
+  brew_install jrnl
 }
 
 install_xcode() {
