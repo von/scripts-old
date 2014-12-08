@@ -84,18 +84,9 @@ install_macvim() {
     return 0
   fi
   brew_install macvim --override-system-vim
-  # TODO: Implement the following
-  echo "Fixing python linkage"
-  # See https://bugs.launchpad.net/ultisnips/+bug/1178439
-  PYTHON_MAJOR=$(python -c 'import sys;print sys.version_info[0]')
-  PYTHON_MINOR=$(python -c 'import sys;print sys.version_info[1]')
-  PYTHON_MICRO=$(python -c 'import sys;print sys.version_info[2]')
-  PYTHON_FULL=${PYTHON_MAJOR}.${PYTHON_MINOR}.${PYTHON_MICRO}
-  PYTHON_MM=${PYTHON_MAJOR}.${PYTHON_MINOR}
-  # TODO: Find macvim more reliably
-  cd /usr/local/Cellar/macvim/*/MacVim.app/Contents/MacOS/
-  install_name_tool -change /System/Library/Frameworks/Python.framework/Versions/${PYTHON_MM}/Python /usr/local/Cellar/python/${PYTHON_FULL}/Frameworks/Python.framework/Versions/${PYTHON_MM}/Python MacVim
-  install_name_tool -change /System/Library/Frameworks/Python.framework/Versions/${PYTHON_MM}/Python /usr/local/Cellar/python/${PYTHON_FULL}/Frameworks/Python.framework/Versions/${PYTHON_MM}/Python Vim
+  echo "MacVim installed."
+  echo "Note you may need to rebuild YouCompleteMe to pick up new python"
+  echo "  libraries."
 }
 
 install_tmux() {
