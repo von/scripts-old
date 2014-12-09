@@ -75,6 +75,7 @@ install_default() {
   install_markdown
   install_ctags
   install_jrnl
+  install_mr
 } 
 
 install_macvim() {
@@ -168,6 +169,11 @@ install_gpg2() {
 install_jrnl() {
   # http://maebert.github.io/jrnl/
   brew_install jrnl
+}
+
+install_mr() {
+  # http://myrepos.branchable.com/
+  brew_install mr
 }
 
 install_xcode() {
