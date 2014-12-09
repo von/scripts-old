@@ -76,6 +76,7 @@ install_default() {
   install_ctags
   install_jrnl
   install_mr
+  install_moreutils
 } 
 
 install_macvim() {
@@ -174,6 +175,11 @@ install_jrnl() {
 install_mr() {
   # http://myrepos.branchable.com/
   brew_install mr
+}
+
+install_moreutils() {
+  # https://joeyh.name/code/moreutils/
+  brew_install moreutils
 }
 
 install_xcode() {
