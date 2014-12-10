@@ -10,19 +10,18 @@
 local=$(git rev-parse --abbrev-ref HEAD)
 # And it's upstream branch
 # Kudos: http://stackoverflow.com/a/9753364/197789
-remote=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} >& /dev/null)
+remote=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
 
 if test -z "${remote}" ; then
   echo "No remote branch for ${local}"
-  exit 0
+else
+  tempfile=$(mktemp ${0}.${$}.XXXX)
+
+  # Kudos: http://stackoverflow.com/a/7774433/197789
+  git rev-list --left-right ${local}...${remote} -- 2>/dev/null >${tempfile}
+  LEFT_AHEAD=$(grep -c '^<' ${tempfile})
+  RIGHT_AHEAD=$(grep -c '^>' ${tempfile})
+  rm -f ${tempfile}
+  echo "$local (ahead $LEFT_AHEAD) | (behind $RIGHT_AHEAD) $remote"
 fi
-
-tempfile=$(mktemp ${0}.${$}.XXXX)
-
-# Kudos: http://stackoverflow.com/a/7774433/197789
-git rev-list --left-right ${local}...${remote} -- 2>/dev/null >${tempfile}
-LEFT_AHEAD=$(grep -c '^<' ${tempfile})
-RIGHT_AHEAD=$(grep -c '^>' ${tempfile})
-rm -f ${tempfile}
-echo "$local (ahead $LEFT_AHEAD) | (behind $RIGHT_AHEAD) $remote"
 exit 0
