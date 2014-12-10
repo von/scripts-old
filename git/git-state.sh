@@ -13,8 +13,9 @@ local=$(git rev-parse --abbrev-ref HEAD)
 remote=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
 
 if test -z "${remote}" ; then
-  echo "No remote branch for ${local}"
+  echo -n "No remote branch for ${local}"
 else
+
   tempfile=$(mktemp ${0}.${$}.XXXX)
 
   # Kudos: http://stackoverflow.com/a/7774433/197789
@@ -22,6 +23,18 @@ else
   LEFT_AHEAD=$(grep -c '^<' ${tempfile})
   RIGHT_AHEAD=$(grep -c '^>' ${tempfile})
   rm -f ${tempfile}
-  echo "$local (ahead $LEFT_AHEAD) | (behind $RIGHT_AHEAD) $remote"
+  echo -n "$local (ahead $LEFT_AHEAD) | (behind $RIGHT_AHEAD) $remote"
 fi
+
+DIFF_COUNT=$(git diff | wc -l)
+if test ${DIFF_COUNT} -gt 0 ; then
+  echo -n " (Add needed)"
+fi
+
+INDEX_COUNT=$(git index | wc -l)
+if test ${INDEX_COUNT} -gt 0 ; then
+  echo -n " (Commit needed)"
+fi
+
+echo ""
 exit 0
