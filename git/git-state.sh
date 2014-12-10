@@ -10,7 +10,12 @@
 local=$(git rev-parse --abbrev-ref HEAD)
 # And it's upstream branch
 # Kudos: http://stackoverflow.com/a/9753364/197789
-remote=$(git rev-parse --abbrev-ref --symbolic-full-name @{u})
+remote=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} >& /dev/null)
+
+if test -z "${remote}" ; then
+  echo "No remote branch for ${local}"
+  exit 0
+fi
 
 tempfile=$(mktemp ${0}.${$}.XXXX)
 
