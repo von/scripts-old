@@ -255,6 +255,10 @@ install_android_file_transfer() {
   cask_install android-file-transfer
 }
 
+install_totalfinder() {
+  cask_install totalfinder
+}
+
 install_brew_upgrade() {
   ${BREW} update
   ${BREW} upgrade
