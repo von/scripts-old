@@ -216,6 +216,10 @@ install_xcode() {
       echo "XCode for Snow Leopard is at: https://connect.apple.com/cgi-bin/WebObjects/MemberSite.woa/wa/getSoftware?bundleID=20792"
       ;;
 
+    10.10.*)
+      echo "Install XCode using App Store"
+      ;;
+
     *)
       echo "To install Xcode, visit https://developer.apple.com/xcode/"
       echo "Note that it is a large download (1.5GB+)."
