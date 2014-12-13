@@ -207,6 +207,10 @@ install_xcode() {
   esac
 }
 
+install_chrome() {
+  brew cask install google-chrome
+}
+
 install_brew_upgrade() {
   ${BREW} update
   ${BREW} upgrade
