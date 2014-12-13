@@ -235,6 +235,20 @@ install_xcode() {
   esac
 }
 
+######################################################################
+#
+# Cask-installed apps
+#
+
+install_apps() {
+  install_chrome
+  install_google_drive
+  install_skype
+  install_dropbox
+  install_android_file_transfer
+  install_totalfinder
+}
+
 install_chrome() {
   cask_install google-chrome
 }
@@ -258,6 +272,8 @@ install_android_file_transfer() {
 install_totalfinder() {
   cask_install totalfinder
 }
+
+######################################################################
 
 install_brew_upgrade() {
   ${BREW} update
