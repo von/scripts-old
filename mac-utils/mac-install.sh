@@ -211,6 +211,10 @@ install_chrome() {
   brew cask install google-chrome
 }
 
+install_skype() {
+  brew cask install skype
+}
+
 install_brew_upgrade() {
   ${BREW} update
   ${BREW} upgrade
