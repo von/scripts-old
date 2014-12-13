@@ -134,8 +134,8 @@ install_keychain() {
 }
 
 install_password_store() {
-  echo "Install my version from git@von-forks.github.com:von-forks/password-store.git"
-  # brew_install pass
+  #echo "Install my version from git@von-forks.github.com:von-forks/password-store.git"
+  brew_install pass
 }
 
 install_git() {
