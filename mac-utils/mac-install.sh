@@ -94,6 +94,7 @@ install_default() {
   install_jrnl
   install_mr
   install_moreutils
+  install_vifm
 } 
 
 install_macvim() {
@@ -197,6 +198,12 @@ install_mr() {
 install_moreutils() {
   # https://joeyh.name/code/moreutils/
   brew_install moreutils
+}
+
+install_vifm() {
+  # Curses-based file manager with vi-like keybindings
+  # http://vifm.info/
+  brew_install vifm
 }
 
 install_xcode() {
