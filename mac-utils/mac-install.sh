@@ -228,6 +228,10 @@ install_chrome() {
   cask_install google-chrome
 }
 
+install_google_drive() {
+  cask_install google-drive
+}
+
 install_skype() {
   cask_install skype
 }
