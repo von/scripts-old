@@ -232,6 +232,10 @@ install_skype() {
   brew cask install skype
 }
 
+install_dropbox() {
+  cask_install dropbox
+}
+
 install_brew_upgrade() {
   ${BREW} update
   ${BREW} upgrade
