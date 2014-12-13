@@ -225,11 +225,11 @@ install_xcode() {
 }
 
 install_chrome() {
-  brew cask install google-chrome
+  cask_install google-chrome
 }
 
 install_skype() {
-  brew cask install skype
+  cask_install skype
 }
 
 install_dropbox() {
