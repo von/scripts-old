@@ -44,6 +44,23 @@ brew_install() {
   ${BREW} install ${_formula} "${@}"
 }
 
+cask_installed() {
+  # Return 0 if cask forumula installed, 1 otherwise
+  # Arguments: forumula
+  _formula=${1}
+  ${BREW} cask list ${_formula} >/dev/null 2>&1 && return 0
+  return 1
+}
+
+cask_install() {
+  # Install cask formula if not already installed
+  # Arguments: forumla [<options>]
+  _formula=$1
+  cask_installed ${_formula} && \
+    { echo "${_formula} already installed." ; return ; }
+  ${BREW} cask install ${_formula} "${@}"
+}
+
 ######################################################################
 #
 # Install functions
