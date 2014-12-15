@@ -152,7 +152,7 @@ class TBBInstallation(object):
 
         :returns: Path as path instance
         """
-        return self.path / "Docs/sources/versions"
+        return self.path / "TorBrowser/Docs/sources/versions"
 
 ######################################################################
 
