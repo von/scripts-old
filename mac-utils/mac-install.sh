@@ -247,6 +247,7 @@ install_apps() {
   install_dropbox
   install_android_file_transfer
   install_totalfinder
+  install_wesnoth
 }
 
 install_chrome() {
@@ -271,6 +272,10 @@ install_android_file_transfer() {
 
 install_totalfinder() {
   cask_install totalfinder
+}
+
+install_wesnoth() {
+  cask_install wesnoth
 }
 
 ######################################################################
