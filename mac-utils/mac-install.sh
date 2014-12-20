@@ -248,6 +248,7 @@ install_apps() {
   install_android_file_transfer
   install_totalfinder
   install_wesnoth
+  install_firefox
 }
 
 install_chrome() {
@@ -276,6 +277,10 @@ install_totalfinder() {
 
 install_wesnoth() {
   cask_install wesnoth
+}
+
+install_firefox() {
+  cask_install firefox
 }
 
 ######################################################################
