@@ -247,7 +247,6 @@ install_apps() {
   install_dropbox
   install_android_file_transfer
   install_totalfinder
-  install_wesnoth
   install_firefox
 }
 
@@ -276,7 +275,8 @@ install_totalfinder() {
 }
 
 install_wesnoth() {
-  cask_install wesnoth
+  #cask_install wesnoth
+  echo "Cask for Battle of Wesnoth is out of date, download from website."
 }
 
 install_firefox() {
