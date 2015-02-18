@@ -108,10 +108,15 @@ class SystemConfiguration(object):
 
 class TBBInstallation(object):
     """Representation of local installation of Tor Browser Bundle"""
-    def __init__(self, install_path=None):
+    def __init__(self, install_path=None, debug=False):
+        """
+        :param install_path: path to installation
+        :parama debug: enable debug output
+        """
         self.config = SystemConfiguration()
         self.path = path(install_path) if install_path \
             else path(self.config["path"])
+        self._debug = debug
 
     def exists(self):
         """Check to see if installation exists.
@@ -127,7 +132,9 @@ class TBBInstallation(object):
         """
         version_path = self.version_file_path
         if not version_path.exists():
+            self.debug("No version file ({})".format(version_path))
             return None
+        self.debug("Getting version from {}".format(version_path))
         version_re = re.compile("TORBROWSER_VERSION=(.*)")
         try:
             with version_path.open() as f:
@@ -140,10 +147,15 @@ class TBBInstallation(object):
                     return None
         except IOError:
             return None
-        try:
-            version = StrictVersion(version_string)
-        except ValueError:
-            return None
+
+        if version_string:
+            try:
+                version = StrictVersion(version_string)
+            except ValueError:
+                return None
+        else:
+            self.debug("No version string found in {}".format(version_path))
+
         return version
 
     @property
@@ -153,6 +165,15 @@ class TBBInstallation(object):
         :returns: Path as path instance
         """
         return self.path / "TorBrowser/Docs/sources/versions"
+
+    def debug(self, msg):
+        """Print a debug message if debugging turned on.
+
+        :param msg: string to print
+        """
+        if self._debug:
+            print(msg)
+
 
 ######################################################################
 
@@ -371,7 +392,7 @@ class TBBInstallApp(cli.app.CommandLineApp):
             return 1
         self.debug("Latest version is {} at {}".format(info.version,
                                                        info.url))
-        installation = TBBInstallation()
+        installation = TBBInstallation(debug=self.params.debug)
         if installation.exists():
             installed_version = installation.version()
             if installed_version:
