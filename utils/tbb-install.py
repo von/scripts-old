@@ -544,7 +544,8 @@ class TBBInstallApp(cli.app.CommandLineApp):
         r = requests.get(url, stream=True)
         downloaded = 0
         if show_progress:
-            progress_fmt="\rDownloaded {{}} of {}".format(size if size else "Unknown")
+            progress_fmt = "\rDownloaded {{}} of {}".format(
+                size if size else "Unknown")
 
             def progress(downloaded):
                 sys.stdout.write(progress_fmt.format(downloaded))
