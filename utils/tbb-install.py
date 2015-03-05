@@ -371,7 +371,8 @@ class TBBInstallApp(cli.app.CommandLineApp):
     # Displayed by help
     name = "tbb-install"
 
-    bundle_signing_gpg_key = "0x63FEE659"
+    # Tor Browser Developers
+    bundle_signing_gpg_key = "0xF65C2036"
 
     # Functions part of CommandLineApp API
 
