@@ -282,6 +282,7 @@ class TBBInstaller(object):
         mount_info = sh.hdiutil("attach",
                                 "-noverify",  # Avoid output
                                 "-mountroot", cwd,
+                                "-nobrowse",  # Make invisible to Finder
                                 bundle_path)
         dev, hint, mount_point = [s.strip() for s in mount_info.split("\t")]
         atexit.register(sh.hdiutil, "detach", mount_point, "-force")
