@@ -37,6 +37,8 @@ install_basics()
     local BASICS="\
       subversion git tig cvs \
       build-essential \
+      cmake \
+      python-dev \
       keychain \
       openssh-client \
       pass \
