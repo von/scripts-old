@@ -42,7 +42,7 @@ install_basics()
       keychain \
       openssh-client \
       pass \
-      pineentry-curses \
+      pinentry-curses \
       secure-delete \
       zsh
     "
