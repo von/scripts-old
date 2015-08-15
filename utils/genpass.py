@@ -48,6 +48,16 @@ def pass_phrase(args):
     s = " ".join([random.choice(words).strip() for i in xrange(length)])
     return s
 
+def pass_pin(args):
+    """Generate a pin."""
+    min = args.min if args.min else 4
+    max = args.max if args.max else 4
+    alphabet = string.digits
+    length = random.randint(min, max)
+    debug("Length is {}".format(length))
+    s = "".join([random.choice(alphabet) for i in xrange(length)])
+    return s
+
 ######################################################################
 #
 # Password output functions
@@ -83,6 +93,7 @@ alphabets = {
 algorithms = {
     "word" : pass_word,
     "phrase" : pass_phrase,
+    "pin" : pass_pin,
     }
 
 ######################################################################
