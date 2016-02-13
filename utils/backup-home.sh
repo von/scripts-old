@@ -6,39 +6,49 @@
 # Backup my home directory
 #
 ######################################################################
+
+set -o errexit  # Exit on any error
+
+######################################################################
+
+usage() {
+  echo "Usage: $0 <target directory>"
+}
+
+if [[ $# -ne 1 ]]; then
+  usage
+  exit 1
+fi
+
+target=$1; shift
+
+######################################################################
 #
 # Build list of files to exclude
 #
-
-dir_contents () {
-  find $HOME/$1 -printf ./$1/%P\\n
-}
 
 exclude_list="/tmp/backup-home-exclude-$$"
 
 rm -f $exclude_list
 
-# My old home
-dir_contents vwelch-old >> $exclude_list
-
-# The netscape cache
-dir_contents .netscape/cache >> $exclude_list
+echo "Box Sync" >> $exclude_list
+echo "Dropbox" >> $exclude_list
+echo "Google Drive" >> $exclude_list
+echo "old-laptop-jan2014" >> $exclude_list
 
 # Any emacs backup files
-find $HOME -name \*~ -printf ./%P\\n >> $exclude_list
+echo "*~" >> $exclude_list
 
 ######################################################################
 #
-# Now tar everything up
+# Make backup
 #
 
-date=`date +%Y-%m-%d`
+echo "Backing up to ${target}"
 
-output="/tmp/home-${date}.tar.gz"
+mkdir -p -m 0700 "${target}" || exit 1
 
-cd $HOME
-
-tar cvfz $output -X $exclude_list .
+(cd "$HOME" && tar -c -f - -X ${exclude_list} . ) | (cd "${target}" && tar -x -v -f - )
 
 ######################################################################
 #
@@ -52,6 +62,6 @@ rm -f $exclude_list
 # Done
 #
 
-ls -l $output
+echo "Success."
 
 exit 0
