@@ -6,7 +6,7 @@ set -e  # Exit on error
 set -u  # Exit on undefined variable use
 
 usage() {
-  echo Usage: $0 <branch name> <remote url>
+  echo "Usage: $0 <branch name> <remote url>"
 }
 
 if test $# -ne 0 ; then
