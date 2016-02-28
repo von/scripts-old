@@ -14,10 +14,14 @@ output = print
 debug = print
 
 
+def null_output(*args, **kwargs):
+    pass
+
 ######################################################################
 #
 # Functions to generate different types of passwords/passs phrases
 #
+
 
 def pass_word(args):
     """Generate a password."""
@@ -36,6 +40,7 @@ def pass_word(args):
     s = "".join([random.choice(alphabet) for i in xrange(length)])
     return s
 
+
 def pass_phrase(args):
     """Generate a pass phrase."""
     debug("Reading dictionary {}".format(args.dict))
@@ -47,6 +52,7 @@ def pass_phrase(args):
     debug("Length is {}".format(length))
     s = " ".join([random.choice(words).strip() for i in xrange(length)])
     return s
+
 
 def pass_pin(args):
     """Generate a pin."""
@@ -63,18 +69,20 @@ def pass_pin(args):
 # Password output functions
 #
 
+
 def output_stdout(s, args):
     """Output to stdout"""
     print(s)
     return(0)
 
+
 def output_clipboard(s, args):
     """Output to paste buffer"""
     output("Putting passphrase/word into paste buffer...")
     if sys.platform == "darwin":
-        prog="pbcopy"
+        prog = "pbcopy"
     else:
-        prog="xclip -in -verbose -selection clipboard"
+        prog = "xclip -in -verbose -selection clipboard"
     debug("Invoking {}".format(prog))
     result = envoy.run(prog, data=s, timeout=1)
     if result.status_code > 0:
@@ -86,17 +94,18 @@ def output_clipboard(s, args):
 
 # Alphabets used by pass_word
 alphabets = {
-    "alphanum" : string.letters + string.digits,
-    "alphanumpunct" : string.letters + string.digits + string.punctuation,
+    "alphanum": string.letters + string.digits,
+    "alphanumpunct": string.letters + string.digits + string.punctuation,
     }
 
 algorithms = {
-    "word" : pass_word,
-    "phrase" : pass_phrase,
-    "pin" : pass_pin,
+    "word": pass_word,
+    "phrase": pass_phrase,
+    "pin": pass_pin,
     }
 
 ######################################################################
+
 
 def main(argv=None):
     # Do argv default this way, as doing it in the functional
@@ -106,12 +115,12 @@ def main(argv=None):
 
     # Argument parsing
     parser = argparse.ArgumentParser(
-        description=__doc__, # printed with -h/--help
-	    # Don't mess with format of description
+        description=__doc__,  # printed with -h/--help
+        # Don't mess with format of description
         formatter_class=argparse.RawDescriptionHelpFormatter,
-	    # To have --help print defaults with trade-off it changes
-	    # formatting, use: ArgumentDefaultsHelpFormatter
-	)
+        # To have --help print defaults with trade-off it changes
+        # formatting, use: ArgumentDefaultsHelpFormatter
+    )
 
     # Generate password by default
     parser.set_defaults(
@@ -157,7 +166,6 @@ def main(argv=None):
         "-M", "--max",
         type=int, default=0,
         help="Specify maximum length/words", metavar="NUM")
-
     parser.add_argument(
         "-S", "--stdout",
         action='store_const', const=output_stdout,
@@ -167,9 +175,9 @@ def main(argv=None):
     args = parser.parse_args()
 
     global output
-    output = print if not args.quiet else lambda s: None
+    output = print if not args.quiet else null_output
     global debug
-    debug = print if args.debug else lambda s: None
+    debug = print if args.debug else null_output
 
     debug("Calling random.seed()")
     random.seed()
